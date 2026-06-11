@@ -161,24 +161,47 @@ export class FinaleScene {
     sparkle(ctx, 825, 254, 9, C.mustard);
     drawText(ctx, 'REAL ESTATE SALES CENTRE', 825, 414, { size: 9, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
 
-    // the bellman walks left to right, one last time
+    // one last run in the Porsche NXT cart — box on the back, left to right
     const wx = 150 + easeOutExpo(clamp(this.t / 3.2, 0, 1)) * 560;
-    const step = Math.sin(this.tAll * 9) * 6;
+    const bob = Math.sin(this.tAll * 7) * 1.5;
+    ctx.save();
+    ctx.translate(wx, 374 + bob);
     ctx.fillStyle = '#0a0a0c';
+    // chassis + sloped nose
+    ctx.fillRect(-34, -14, 64, 14);
     ctx.beginPath();
-    ctx.arc(wx, 352, 9, 0, Math.PI * 2);
+    ctx.moveTo(30, -14);
+    ctx.quadraticCurveTo(46, -12, 48, 0);
+    ctx.lineTo(30, 0);
     ctx.fill();
-    rect(ctx, wx - 6, 360, 12, 24, '#0a0a0c');
-    ctx.strokeStyle = '#0a0a0c';
-    ctx.lineWidth = 4;
+    // cargo box on the back, luggage strapped on top
+    ctx.fillRect(-58, -28, 26, 28);
+    ctx.fillRect(-54, -35, 18, 7);
+    // canopy
+    ctx.fillRect(-26, -46, 4, 32);
+    ctx.fillRect(20, -46, 4, 32);
+    ctx.fillRect(-30, -51, 58, 5);
+    // driver
     ctx.beginPath();
-    ctx.moveTo(wx - 2, 384);
-    ctx.lineTo(wx - 6 + step, 400);
-    ctx.moveTo(wx + 2, 384);
-    ctx.lineTo(wx + 6 - step, 400);
-    ctx.stroke();
+    ctx.arc(0, -33, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(-7, -27, 14, 13);
+    // wheels with spinning hubs
+    [[-22, 1], [34, 1]].forEach(([hx, hy]) => {
+      ctx.beginPath();
+      ctx.arc(hx, hy + 8, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = C.cream;
+      ctx.lineWidth = 2;
+      const a = this.tAll * 9;
+      ctx.beginPath();
+      ctx.moveTo(hx + Math.cos(a) * 4, hy + 8 + Math.sin(a) * 4);
+      ctx.lineTo(hx - Math.cos(a) * 4, hy + 8 - Math.sin(a) * 4);
+      ctx.stroke();
+    });
+    ctx.restore();
 
-    drawText(ctx, 'THAT EVENING, AFTER THE THIRD SHIFT...', W / 2, 452, { size: 11, weight: 700, color: C.dim, align: 'center', spacing: 3 });
+    drawText(ctx, 'THAT EVENING — ONE LAST RUN IN THE NXT CART...', W / 2, 452, { size: 11, weight: 700, color: C.dim, align: 'center', spacing: 3 });
     if (this.t > 0.7) drawText(ctx, 'ENTER → SKIP', 924, 480, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 2 });
   }
 }
