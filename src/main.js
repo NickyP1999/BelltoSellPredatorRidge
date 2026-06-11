@@ -36,7 +36,7 @@ fit();
 const input = {
   down: new Set(),
   pressed: new Set(),
-  pointer: { x: -1, y: -1, clicked: false },
+  pointer: { x: -1, y: -1, clicked: false, held: false, released: false },
 };
 
 const game = {
@@ -44,11 +44,19 @@ const game = {
   save: new Save(),
   audio: new GameAudio(),
   paused: false,
+  cursor: 'default',
   scenes: {},
   scene: null,
+  transition: null,
   go(name, params) {
-    this.scene = this.scenes[name];
-    this.scene.enter(params || {});
+    if (!this.scene) {
+      this.scene = this.scenes[name];
+      this.scene.enter(params || {});
+      return;
+    }
+    if (this.transition) return; // one wipe at a time
+    this.transition = { t: 0, to: name, params: params || {}, switched: false };
+    this.audio.whoosh();
   },
 };
 game.scenes.hub = new HubScene(game);
@@ -83,13 +91,54 @@ canvas.addEventListener('pointermove', (e) => {
 });
 canvas.addEventListener('pointerdown', (e) => {
   game.audio.ensure();
+  canvas.setPointerCapture(e.pointerId);
   const p = toCanvas(e);
   input.pointer.x = p.x;
   input.pointer.y = p.y;
   input.pointer.clicked = true;
+  input.pointer.held = true;
+});
+canvas.addEventListener('pointerup', (e) => {
+  const p = toCanvas(e);
+  input.pointer.x = p.x;
+  input.pointer.y = p.y;
+  input.pointer.held = false;
+  input.pointer.released = true;
+});
+canvas.addEventListener('pointercancel', () => {
+  input.pointer.held = false;
+  input.pointer.released = true;
 });
 
 window.__game = game; // debug handle for dev-tools poking
+
+// Diagonal ink-and-mustard wipe between scenes.
+function drawWipe(ctx, p) {
+  const skew = 140;
+  ctx.save();
+  if (p < 0.5) {
+    const e = (p / 0.5) * (W + skew);
+    ctx.fillStyle = C.ink;
+    ctx.beginPath();
+    ctx.moveTo(-10, 0); ctx.lineTo(e, 0); ctx.lineTo(e - skew, H); ctx.lineTo(-10, H);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = C.mustard;
+    ctx.beginPath();
+    ctx.moveTo(e, 0); ctx.lineTo(e + 16, 0); ctx.lineTo(e + 16 - skew, H); ctx.lineTo(e - skew, H);
+    ctx.closePath(); ctx.fill();
+  } else {
+    const e = ((p - 0.5) / 0.5) * (W + skew) - skew;
+    ctx.fillStyle = C.ink;
+    ctx.beginPath();
+    ctx.moveTo(e, 0); ctx.lineTo(W + 10, 0); ctx.lineTo(W + 10, H); ctx.lineTo(e - skew, H);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = C.mustard;
+    ctx.beginPath();
+    ctx.moveTo(e - 16, 0); ctx.lineTo(e, 0); ctx.lineTo(e - skew, H); ctx.lineTo(e - 16 - skew, H);
+    ctx.closePath(); ctx.fill();
+  }
+  ctx.restore();
+}
 
 let last = performance.now();
 function tick(now) {
@@ -99,11 +148,24 @@ function tick(now) {
   if (input.pressed.has('KeyM')) game.audio.muted = !game.audio.muted;
   if (input.pressed.has('KeyP') || input.pressed.has('Escape')) game.paused = !game.paused;
 
-  if (!game.paused) game.scene.update(dt);
+  game.cursor = 'default';
+  const tr = game.transition;
+  if (tr) {
+    tr.t += dt * 2.0;
+    if (tr.t >= 0.5 && !tr.switched) {
+      tr.switched = true;
+      game.scene = game.scenes[tr.to];
+      game.scene.enter(tr.params);
+    }
+    if (tr.t >= 1) game.transition = null;
+  } else if (!game.paused) {
+    game.scene.update(dt);
+  }
 
   ctx.setTransform(viewScale, 0, 0, viewScale, 0, 0);
   rect(ctx, 0, 0, W, H, C.ink);
   game.scene.draw(ctx);
+  if (game.transition) drawWipe(ctx, Math.min(1, game.transition.t));
 
   if (game.paused) {
     rect(ctx, 0, 0, W, H, C.ink, 0.78);
@@ -114,9 +176,11 @@ function tick(now) {
     drawText(ctx, 'MUTED', W - 14, H - 22, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 2 });
   }
   filmLook(ctx, W, H, now / 1000);
+  canvas.style.cursor = game.cursor;
 
   input.pressed.clear();
   input.pointer.clicked = false;
+  input.pointer.released = false;
   requestAnimationFrame(tick);
 }
 

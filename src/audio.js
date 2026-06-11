@@ -89,6 +89,11 @@ export class GameAudio {
   click() { this.ride(); }
   snare() { this.noise(0.1, { vol: 0.12, band: 1700 }); }
   thump() { this.tone(120, 0.24, { vol: 0.25, glideTo: 48 }); }
+  whoosh() { this.noise(0.28, { vol: 0.09, band: 700 }); this.noise(0.2, { vol: 0.05, when: 0.05, band: 1600 }); }
+  blip() { this.tone(1150 + Math.random() * 350, 0.03, { type: 'square', vol: 0.016 }); }
+  pickup() { this.noise(0.06, { vol: 0.06, high: 3000 }); this.tone(520, 0.06, { type: 'triangle', vol: 0.045 }); }
+  place() { this.noise(0.07, { vol: 0.06, band: 700 }); }
+  deal() { this.noise(0.05, { vol: 0.05, high: 2500 }); this.tone(740, 0.04, { type: 'triangle', vol: 0.03 }); }
 
   crit(pitch = 1) {
     this.stab(pitch);

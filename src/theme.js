@@ -90,7 +90,7 @@ export function sparkle(ctx, x, y, r, color, opts = {}) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
-  ctx.globalAlpha = alpha;
+  ctx.globalAlpha *= alpha;
   ctx.fillStyle = color;
   ctx.beginPath();
   ctx.moveTo(0, -r);

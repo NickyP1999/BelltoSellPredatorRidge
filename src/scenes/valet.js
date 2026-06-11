@@ -252,7 +252,7 @@ export class ValetScene {
     rect(ctx, 0, 0, W, WALL_Y, '#16131a');
     rect(ctx, 0, WALL_Y - 4, W, 4, '#241f2b');
     for (let i = 0; i < 7; i++) rect(ctx, 50 + i * 145, 20, 14, WALL_Y - 24, '#241f2b');
-    drawText(ctx, 'THE LODGE — VALET LOOP', 480, 78, { font: 'display', size: 20, color: C.cream, align: 'center', spacing: 3, alpha: 0.55 });
+    drawText(ctx, 'THE LODGE — VALET', 480, 78, { font: 'display', size: 20, color: C.cream, align: 'center', spacing: 3, alpha: 0.55 });
 
     // the stall
     const st = stallRect(this.round);

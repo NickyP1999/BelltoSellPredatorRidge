@@ -18,7 +18,7 @@ export function drawText(ctx, text, x, y, opts = {}) {
     rotate = 0, italic = false, shadow = null, // shadow: {color, dx, dy}
   } = opts;
   ctx.save();
-  ctx.globalAlpha = alpha;
+  ctx.globalAlpha *= alpha; // compose with any outer dimming
   ctx.font = fontString(font, size, weight, italic);
   if (spacing) { try { ctx.letterSpacing = spacing + 'px'; } catch { /* older browsers */ } }
   ctx.textAlign = align;
@@ -63,7 +63,7 @@ export function wrap(ctx, text, maxWidth, opts = {}) {
 
 export function rect(ctx, x, y, w, h, color, alpha = 1) {
   ctx.save();
-  ctx.globalAlpha = alpha;
+  ctx.globalAlpha *= alpha; // compose with any outer dimming
   ctx.fillStyle = color;
   ctx.fillRect(x, y, w, h);
   ctx.restore();

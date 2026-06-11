@@ -7,7 +7,7 @@ const W = 960, H = 540;
 // Career order, left to right. Each shift unlocks the next.
 const LEVELS = [
   { id: 'luggage', num: '01', name: 'LUGGAGE RUSH', sub: 'THE LODGE', accent: '#d94f30', x: 48, y: 206, w: 272, h: 240, tilt: -0.012, scene: 'luggage' },
-  { id: 'valet', num: '02', name: 'VALET PRECISION', sub: 'PORTICO LOOP', accent: '#3fb8a8', x: 344, y: 206, w: 272, h: 240, tilt: 0.008, scene: 'valet' },
+  { id: 'valet', num: '02', name: 'VALET PRECISION', sub: 'LODGE VALET', accent: '#3fb8a8', x: 344, y: 206, w: 272, h: 240, tilt: 0.008, scene: 'valet' },
   { id: 'pitch', num: '03', name: 'THE PITCH', sub: 'SALES CENTRE', accent: '#f2b63a', x: 640, y: 206, w: 272, h: 240, tilt: -0.008, scene: 'pitch' },
 ];
 
@@ -93,8 +93,16 @@ export class HubScene {
     if (inp.pressed.has('ArrowLeft') || inp.pressed.has('KeyA')) { this.sel = (this.sel + nItems - 1) % nItems; this.game.audio.ride(); }
     if (inp.pressed.has('ArrowRight') || inp.pressed.has('KeyD')) { this.sel = (this.sel + 1) % nItems; this.game.audio.ride(); }
 
-    LEVELS.forEach((l, i) => { if (pointIn(p, l.x, l.y, l.w, l.h) && this.sel !== i) { this.sel = i; } });
-    if (this.allDone() && pointIn(p, PROMO.x, PROMO.y, PROMO.w, PROMO.h)) this.sel = LEVELS.length;
+    LEVELS.forEach((l, i) => {
+      if (pointIn(p, l.x, l.y, l.w, l.h)) {
+        this.game.cursor = 'pointer';
+        if (this.sel !== i) this.sel = i;
+      }
+    });
+    if (this.allDone() && pointIn(p, PROMO.x, PROMO.y, PROMO.w, PROMO.h)) {
+      this.game.cursor = 'pointer';
+      this.sel = LEVELS.length;
+    }
 
     let activate = -1;
     if (p.clicked) {
@@ -147,8 +155,10 @@ export class HubScene {
       const isSel = i === this.sel;
       const open = this.isOpen(i);
       ctx.save();
-      ctx.translate(l.x + l.w / 2, l.y + l.h / 2 - (isSel ? 8 : 0));
-      ctx.rotate(l.tilt);
+      // posters breathe a little, like a wall of prints in a draft
+      const bob = Math.sin(this.t * 1.3 + i * 1.9) * 2.5;
+      ctx.translate(l.x + l.w / 2, l.y + l.h / 2 - (isSel ? 8 : 0) + bob);
+      ctx.rotate(l.tilt + Math.sin(this.t * 0.9 + i * 2.3) * 0.004);
       if (isSel) {
         ctx.scale(1.03, 1.03);
         ctx.shadowColor = 'rgba(0,0,0,0.7)';
