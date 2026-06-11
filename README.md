@@ -6,7 +6,7 @@ one bellman — **Nico** — to **Sales Assistant, Real Estate** at Predator Rid
 
 | Shift | Game | Skill on display |
 |---|---|---|
-| 01 — Luggage Rush | Balance a tower of bags through the lobby and catch the elevator | Grace under pressure |
+| 01 — Luggage Rush | Balance bags through the lobby, then drive them to the cottages on the Porsche NXT cart | Grace under pressure |
 | 02 — Valet Precision | Reverse a guest's Denali XL into ever-tighter stalls | Precision & care with what guests value |
 | 03 — The Pitch | Win three persuasion duels with real Predator Ridge talking points | Listen first, sell honestly |
 

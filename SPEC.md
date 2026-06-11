@@ -18,10 +18,14 @@ next shift. Finishing all three unlocks the promotion meeting (stars are the rep
 chase, not a gate). All minigames also *move* left→right: the cart rolls right, the
 Denali starts left and parks right, the bellman walks left→right into the finale.
 
-- **L1 Luggage Rush (built):** side-scrolling balance run. Bags drop from the bell rail
-  at marked spots; off-centre catches and speed changes tip the stack (inverted-pendulum
-  lean physics); auto-doors cycle, guests cross, wet floor punishes speed; beat the
-  elevator countdown. Score = bags aboard + time + no drops.
+- **L1 Luggage Rush (built, two legs):** Leg 1 — side-scrolling balance run through the
+  lobby: bags drop from the bell rail at marked spots; off-centre catches and speed
+  changes tip the stack (inverted-pendulum lean physics); auto-doors cycle, guests
+  cross, wet floor punishes speed; reach the service exit before the clock. Leg 2 —
+  **the Cottage Run**: the player drives the Porsche NXT cart (bags visible in the
+  cargo box) out to Peregrine Cottages; bumps launch the box and pop bags overboard
+  above the safe speed, sprinklers soak speeders, and the marmot has right of way.
+  Score = bags delivered + banked time across both legs.
 - **L2 Valet Precision (built):** top-down bicycle-model driving with true reverse
   articulation. Three rounds, tighter stalls; reverse in rear-first; angle + centering +
   par time scored per round; 3 bumps resets a round; the wandering dog triggers an
