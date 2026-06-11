@@ -45,7 +45,7 @@ export const ENCOUNTERS = [
       { name: 'Zero-Commute Dinner', tag: 'Time', charm: 12, rarity: 'common',
         line: "It's a short walk from the Lodge. I can have a table waiting before you've found your car keys." },
       { name: 'Anniversary Assist', tag: 'Indecision', charm: 10, rarity: 'common',
-        line: "An anniversary dinner arranged by your bellman — that's a story you'll tell. I'll handle every detail." },
+        line: "Let me arrange the anniversary dinner — that's a story you'll tell for years. I'll handle every detail." },
       { name: "Pallino's Tomorrow", tag: 'Time', charm: 10, rarity: 'common',
         line: "RANGE tonight, Pallino's Italian Bistro tomorrow — two dinners, zero driving." },
       { name: 'Taste of the Valley', tag: 'Skepticism', charm: 10, rarity: 'common',
