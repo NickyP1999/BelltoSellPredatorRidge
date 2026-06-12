@@ -55,7 +55,13 @@ export class FinaleScene {
       if (this.t > 3.4 || (confirm && this.t > 0.4)) { this.state = 'letter'; this.t = 0; }
       return;
     }
-    // letter
+    // letter paragraphs land with soft type blips
+    const reveal = Math.floor((this.t - 0.3) / 0.22);
+    if (reveal > (this.revealSeen || 0) && reveal <= 7) {
+      this.revealSeen = reveal;
+      if (reveal === 7) this.game.audio.bell(1.1);
+      else this.game.audio.blip();
+    }
     if (!this.stamped && this.t > 2.4) {
       this.stamped = true;
       this.game.audio.win();

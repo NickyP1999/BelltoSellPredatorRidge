@@ -81,6 +81,10 @@ export class HubScene {
 
     if (inp.pressed.has('KeyG')) {
       this.showBook = !this.showBook;
+      if (this.showBook) {
+        this.game.save.data.bookSeen = this.game.save.data.guestBook.length;
+        this.game.save.write();
+      }
       this.game.audio.ride();
       return;
     }
@@ -154,6 +158,9 @@ export class HubScene {
     drawText(ctx, `${sv.tips}`, 924, 16, { font: 'display', size: 44, color: C.mustard, align: 'right' });
     drawText(ctx, 'TIPS', 924, 62, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 3 });
     drawText(ctx, `BELLMAN ${PLAYER_NAME.toUpperCase()}`, 924, 84, { size: 11, weight: 700, color: C.cream, align: 'right', spacing: 2 });
+    if (sv.guestBook.length > (sv.bookSeen || 0)) {
+      drawText(ctx, 'G → NEW LINE IN YOUR GUEST BOOK', 924, 106, { size: 10, weight: 700, color: C.teal, align: 'right', spacing: 2, alpha: 0.6 + 0.4 * Math.sin(this.t * 4) });
+    }
 
     // ── Level posters
     LEVELS.forEach((l, i) => {

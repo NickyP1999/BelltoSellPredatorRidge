@@ -423,7 +423,10 @@ export class PitchScene {
       let trot = c * 0.045;
       let tscale = 1;
       if (this.state === 'choose' && !this.drag && i === this.sel) {
-        ty -= 48; trot = 0; tscale = 1.13;
+        ty -= 48; tscale = 1.13;
+        // lifted card leans subtly toward the cursor
+        const ptr = this.game.input.pointer;
+        trot = ptr.y > 340 ? clamp((ptr.x - tx) * 0.00045, -0.05, 0.05) : 0;
       } else if (this.state === 'choose' && !this.drag) {
         tx += Math.sign(i - this.sel) * 24;
       }

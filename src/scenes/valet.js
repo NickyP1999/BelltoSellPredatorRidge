@@ -431,8 +431,9 @@ export class ValetScene {
       ctx.scale(k, k);
       drawText(ctx, 'PARKED.', 0, -46, { font: 'display', size: 84, color: ACCENT, align: 'center', shadow: { color: '#123832', dx: 5, dy: 5 } });
       ctx.restore();
-      drawText(ctx, `ANGLE ${sp.angleDeg}°   ·   OFF-CENTRE ${sp.centerOff}PX   ·   TIME +${sp.timeBonus}   ·   BUMPS −${sp.bumpPenalty}`, W / 2, 268, { size: 12, weight: 700, color: C.dim, align: 'center', spacing: 2 });
-      drawText(ctx, `+${sp.score}`, W / 2, 300, { font: 'display', size: 56, color: C.mustard, align: 'center' });
+      if (this.t > 0.2) drawText(ctx, `ANGLE ${sp.angleDeg}°   ·   OFF-CENTRE ${sp.centerOff}PX   ·   TIME +${sp.timeBonus}   ·   BUMPS −${sp.bumpPenalty}`, W / 2, 268, { size: 12, weight: 700, color: C.dim, align: 'center', spacing: 2, alpha: Math.min(1, (this.t - 0.2) / 0.3) });
+      const rev = easeOutExpo(clamp((this.t - 0.35) / 0.7, 0, 1));
+      drawText(ctx, `+${Math.round(sp.score * rev)}`, W / 2, 300, { font: 'display', size: 56, color: C.mustard, align: 'center' });
       const next = this.round + 1 < ROUNDS.length ? `ENTER → ROUND ${this.round + 2} (TIGHTER STALL)` : 'ENTER → COLLECT YOUR STARS';
       if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, next, W / 2, 392, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
     }
