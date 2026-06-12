@@ -1,5 +1,5 @@
 import { drawText, wrap, rect, frame, pointIn } from '../util.js';
-import { C, easeOutExpo, halftone, motes, sparkle, stamp } from '../theme.js';
+import { C, bokehBg, easeOutExpo, halftone, motes, panel, sparkle, stamp } from '../theme.js';
 import { PLAYER_NAME } from '../config.js';
 
 const W = 960, H = 540;
@@ -128,14 +128,18 @@ export class HubScene {
 
   draw(ctx) {
     const sv = this.game.save.data;
-    rect(ctx, 0, 0, W, H, C.ink);
+    bokehBg(ctx, 'hub', { top: '#1c1524', mid: '#120e18', bottom: '#0a080d', glowA: '#f2b63a', glowB: '#d94f30' });
     motes(ctx, this.t);
 
     // ── Masthead: rotated mustard block with offset red misprint layer
     const intro = easeOutExpo(Math.min(1, this.t / 0.6));
     ctx.save();
     ctx.rotate(-0.045);
+    ctx.shadowColor = 'rgba(0,0,0,0.65)';
+    ctx.shadowBlur = 26;
+    ctx.shadowOffsetY = 10;
     rect(ctx, -36, 26, 640 * intro, 142, C.red);
+    ctx.shadowColor = 'transparent';
     rect(ctx, -44, 14, 640 * intro, 142, C.mustard);
     ctx.save();
     ctx.globalAlpha = 0.16;
@@ -160,24 +164,23 @@ export class HubScene {
       const bob = Math.sin(this.t * 1.3 + i * 1.9) * 2.5;
       ctx.translate(l.x + l.w / 2, l.y + l.h / 2 - (isSel ? 8 : 0) + bob);
       ctx.rotate(l.tilt + Math.sin(this.t * 0.9 + i * 2.3) * 0.004);
-      if (isSel) {
-        ctx.scale(1.03, 1.03);
-        ctx.shadowColor = 'rgba(0,0,0,0.7)';
-        ctx.shadowBlur = 30;
-        ctx.shadowOffsetY = 14;
-      }
+      if (isSel) ctx.scale(1.03, 1.03);
       const x = -l.w / 2, y = -l.h / 2;
-      rect(ctx, x, y, l.w, l.h, C.panel);
-      ctx.shadowColor = 'transparent';
-      frame(ctx, x, y, l.w, l.h, isSel ? C.mustard : C.edge, isSel ? 2 : 1);
+      panel(ctx, x, y, l.w, l.h, { border: isSel ? C.mustard : C.edge, borderW: isSel ? 2 : 1, glow: isSel ? C.mustard : null });
 
-      // accent header with halftone + silhouette
+      // accent header with halftone, light falloff and silhouette
       rect(ctx, x + 10, y + 10, l.w - 20, 112, open ? l.accent : '#3a3342');
       ctx.save();
       ctx.globalAlpha = 0.18;
       ctx.fillStyle = halftone(ctx);
       ctx.fillRect(x + 10 + (l.w - 20) / 2, y + 10, (l.w - 20) / 2, 112);
       ctx.restore();
+      const hg = ctx.createLinearGradient(0, y + 10, 0, y + 122);
+      hg.addColorStop(0, 'rgba(255,255,255,0.13)');
+      hg.addColorStop(0.5, 'rgba(0,0,0,0)');
+      hg.addColorStop(1, 'rgba(0,0,0,0.32)');
+      ctx.fillStyle = hg;
+      ctx.fillRect(x + 10, y + 10, l.w - 20, 112);
       silhouette(ctx, l.id, x + l.w / 2, y + 72, open ? l.accent : '#3a3342');
       drawText(ctx, l.num, x + 18, y + 16, { font: 'display', size: 26, color: C.ink, alpha: 0.65 });
       if (!open) {

@@ -340,12 +340,22 @@ export class LuggageScene {
   drawLobby(ctx) {
     const cam = clamp(this.cx - CART_SX, 0, WORLD - W);
 
-    rect(ctx, 0, 104, W, FLOOR - 104, '#131017');
+    const wallG = ctx.createLinearGradient(0, 104, 0, FLOOR);
+    wallG.addColorStop(0, '#1a1422');
+    wallG.addColorStop(1, '#0f0c13');
+    ctx.fillStyle = wallG;
+    ctx.fillRect(0, 104, W, FLOOR - 104);
     for (let wx = 0; wx < WORLD; wx += 240) {
       const sx = wx - cam;
-      if (sx < -40 || sx > W + 40) continue;
-      rect(ctx, sx, 104, 18, FLOOR - 104, '#1a1620');
-      sparkle(ctx, sx + 9, 150, 5, C.mustard, { alpha: 0.5 });
+      if (sx < -110 || sx > W + 110) continue;
+      // sconce light pools on the wall
+      const pool = ctx.createRadialGradient(sx + 9, 152, 6, sx + 9, 152, 100);
+      pool.addColorStop(0, 'rgba(242,182,58,0.13)');
+      pool.addColorStop(1, 'rgba(242,182,58,0)');
+      ctx.fillStyle = pool;
+      ctx.fillRect(sx - 91, 104, 200, 200);
+      rect(ctx, sx, 104, 18, FLOOR - 104, '#1d1725');
+      sparkle(ctx, sx + 9, 150, 5, C.mustard, { alpha: 0.7 });
     }
     rect(ctx, 0, FLOOR, W, H - FLOOR, '#0f0d12');
     rect(ctx, 0, FLOOR, W, 2, C.cream, 0.18);
@@ -467,11 +477,19 @@ export class LuggageScene {
   drawRun(ctx) {
     const cam = clamp(this.cx2 - CART_SX, 0, RUN.len - W);
 
-    // dusk over the Okanagan
-    rect(ctx, 0, 0, W, 90, '#241c38');
-    rect(ctx, 0, 90, W, 34, '#52304a');
-    rect(ctx, 0, 124, W, 22, '#a8503a');
-    rect(ctx, 0, 146, W, 26, '#1a2418');
+    // dusk over the Okanagan — smooth gradient with a sinking sun
+    const sky = ctx.createLinearGradient(0, 0, 0, 172);
+    sky.addColorStop(0, '#241c38');
+    sky.addColorStop(0.52, '#52304a');
+    sky.addColorStop(0.8, '#a8503a');
+    sky.addColorStop(1, '#1a2418');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, 172);
+    const sun = ctx.createRadialGradient(700, 152, 8, 700, 152, 130);
+    sun.addColorStop(0, 'rgba(248,227,176,0.32)');
+    sun.addColorStop(1, 'rgba(248,227,176,0)');
+    ctx.fillStyle = sun;
+    ctx.fillRect(560, 30, 280, 142);
     rect(ctx, 0, 172, W, FLOOR - 172, '#121710');
     ctx.save();
     ctx.globalAlpha = 0.08;

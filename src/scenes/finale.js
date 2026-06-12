@@ -76,7 +76,17 @@ export class FinaleScene {
     const ly = 30 + (1 - rise) * 540;
     ctx.save();
     ctx.translate(0, ly);
+    ctx.shadowColor = 'rgba(0,0,0,0.6)';
+    ctx.shadowBlur = 34;
+    ctx.shadowOffsetY = 14;
     rect(ctx, 180, 0, 600, 484, C.cream);
+    ctx.shadowColor = 'transparent';
+    const paper = ctx.createLinearGradient(0, 0, 0, 484);
+    paper.addColorStop(0, 'rgba(255,255,255,0.35)');
+    paper.addColorStop(0.2, 'rgba(255,255,255,0)');
+    paper.addColorStop(1, 'rgba(120,100,70,0.18)');
+    ctx.fillStyle = paper;
+    ctx.fillRect(180, 0, 600, 484);
     frame(ctx, 190, 10, 580, 464, '#c9bfa8', 1);
 
     drawText(ctx, 'PREDATOR RIDGE', 220, 34, { font: 'display', size: 34, color: C.ink, spacing: 3 });

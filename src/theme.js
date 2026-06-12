@@ -122,6 +122,80 @@ export function speedlines(ctx, cx, cy, t, color) {
   ctx.restore();
 }
 
+// Premium panel: vertical gradient, soft drop shadow, inner top highlight.
+export function panel(ctx, x, y, w, h, opts = {}) {
+  const {
+    fill = ['#201a29', '#141019'], border = C.edge, borderW = 1,
+    shadow = true, r = 6, glow = null,
+  } = opts;
+  ctx.save();
+  if (shadow) {
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = 16;
+    ctx.shadowOffsetY = 6;
+  }
+  const g = ctx.createLinearGradient(0, y, 0, y + h);
+  g.addColorStop(0, fill[0]);
+  g.addColorStop(1, fill[1]);
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.shadowColor = 'transparent';
+  ctx.beginPath();
+  ctx.moveTo(x + r, y + 1);
+  ctx.lineTo(x + w - r, y + 1);
+  ctx.strokeStyle = 'rgba(242,233,216,0.08)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  if (glow) {
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = 14;
+  }
+  ctx.beginPath();
+  ctx.roundRect(x + 0.5, y + 0.5, w - 1, h - 1, r);
+  ctx.strokeStyle = border;
+  ctx.lineWidth = borderW;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Pre-rendered atmospheric backdrop: deep gradient + blurred bokeh light,
+// built once per key and blitted per frame (the blur costs nothing at runtime).
+const bokehCache = {};
+export function bokehBg(ctx, key, colors) {
+  if (!bokehCache[key]) {
+    const c = document.createElement('canvas');
+    c.width = 960; c.height = 540;
+    const g = c.getContext('2d');
+    const bg = g.createLinearGradient(0, 0, 0, 540);
+    bg.addColorStop(0, colors.top);
+    bg.addColorStop(0.55, colors.mid);
+    bg.addColorStop(1, colors.bottom);
+    g.fillStyle = bg;
+    g.fillRect(0, 0, 960, 540);
+    g.filter = 'blur(34px)';
+    const seeds = [[140, 110, 75], [430, 70, 55], [820, 140, 95], [640, 60, 45], [80, 430, 70], [900, 470, 85], [300, 510, 55], [560, 480, 65]];
+    seeds.forEach(([x, y, r], i) => {
+      g.fillStyle = i % 3 === 0 ? colors.glowA : colors.glowB;
+      g.globalAlpha = 0.09 + (i % 3) * 0.035;
+      g.beginPath();
+      g.arc(x, y, r, 0, Math.PI * 2);
+      g.fill();
+    });
+    g.filter = 'none';
+    g.globalAlpha = 1;
+    // faint corner falloff so panels pop against the middle
+    const vg = g.createRadialGradient(480, 270, 240, 480, 270, 620);
+    vg.addColorStop(0, 'rgba(0,0,0,0)');
+    vg.addColorStop(1, 'rgba(0,0,0,0.45)');
+    g.fillStyle = vg;
+    g.fillRect(0, 0, 960, 540);
+    bokehCache[key] = c;
+  }
+  ctx.drawImage(bokehCache[key], 0, 0);
+}
+
 // Slow-drifting dust motes — ambient life over any dark scene.
 export function motes(ctx, t, n = 12, color = '#f2e9d8') {
   ctx.save();
