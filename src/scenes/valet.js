@@ -248,10 +248,34 @@ export class ValetScene {
 
     // tarmac + portico
     rect(ctx, 0, WALL_Y, W, H - WALL_Y, '#121016');
+    // warm light pools spilling from the portico
+    for (let i = 0; i < 4; i++) {
+      const lx = 165 + i * 215;
+      const grad = ctx.createRadialGradient(lx, WALL_Y, 8, lx, WALL_Y, 140);
+      grad.addColorStop(0, 'rgba(242,182,58,0.11)');
+      grad.addColorStop(1, 'rgba(242,182,58,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(lx - 140, WALL_Y, 280, 150);
+    }
+    // old tire sweeps
+    ctx.strokeStyle = 'rgba(242,233,216,0.045)';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(120, 470);
+    ctx.quadraticCurveTo(430, 420, 700, 250);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(80, 430);
+    ctx.quadraticCurveTo(420, 380, 740, 244);
+    ctx.stroke();
     for (let i = 0; i < 5; i++) rect(ctx, 60 + i * 200, 330, 90, 3, C.cream, 0.07);
     rect(ctx, 0, 0, W, WALL_Y, '#16131a');
     rect(ctx, 0, WALL_Y - 4, W, 4, '#241f2b');
-    for (let i = 0; i < 7; i++) rect(ctx, 50 + i * 145, 20, 14, WALL_Y - 24, '#241f2b');
+    for (let i = 0; i < 7; i++) {
+      rect(ctx, 50 + i * 145, 20, 14, WALL_Y - 24, '#241f2b');
+      rect(ctx, 48 + i * 145, WALL_Y - 10, 18, 6, '#2c2532');
+    }
+    for (let i = 0; i < 7; i++) sparkle(ctx, 57 + i * 145, 30, 4, C.mustard, { alpha: 0.5 });
     drawText(ctx, 'THE LODGE — VALET', 480, 78, { font: 'display', size: 20, color: C.cream, align: 'center', spacing: 3, alpha: 0.55 });
 
     // the stall
@@ -265,6 +289,19 @@ export class ValetScene {
     ctx.strokeRect(st.x, st.y, st.w, st.h);
     ctx.restore();
     rect(ctx, st.x + st.w / 2 - 1, st.y + 10, 2, st.h - 20, inside ? ACCENT : C.cream, 0.2);
+    // painted corner brackets
+    ctx.save();
+    ctx.strokeStyle = inside ? ACCENT : C.cream;
+    ctx.globalAlpha = 0.8;
+    ctx.lineWidth = 4;
+    [[st.x, st.y, 1, 1], [st.x + st.w, st.y, -1, 1], [st.x, st.y + st.h, 1, -1], [st.x + st.w, st.y + st.h, -1, -1]].forEach(([cx2, cy2, dx, dy]) => {
+      ctx.beginPath();
+      ctx.moveTo(cx2 + dx * 14, cy2);
+      ctx.lineTo(cx2, cy2);
+      ctx.lineTo(cx2, cy2 + dy * 14);
+      ctx.stroke();
+    });
+    ctx.restore();
     drawText(ctx, 'STALL', st.x + st.w / 2, st.y - 14, { size: 9, weight: 700, color: inside ? ACCENT : C.faint, align: 'center', spacing: 2 });
     if (inside && this.state === 'play') {
       let err = (this.th - Math.PI / 2) * 180 / Math.PI;
@@ -282,6 +319,13 @@ export class ValetScene {
         ctx.beginPath();
         ctx.arc(rx + rw / 2, ry + rh / 2, rw / 3, 0, Math.PI * 2);
         ctx.fill();
+        // okanagan blooms
+        [[0.32, 0.4, C.red], [0.62, 0.3, C.mustard], [0.5, 0.66, '#d97aa0'], [0.72, 0.6, C.red]].forEach(([fx, fy, col]) => {
+          ctx.fillStyle = col;
+          ctx.beginPath();
+          ctx.arc(rx + rw * fx, ry + rh * fy, 3, 0, Math.PI * 2);
+          ctx.fill();
+        });
       } else {
         rect(ctx, rx, ry, rw, rh, '#241f2b');
         frame(ctx, rx, ry, rw, rh, C.edge, 1);
@@ -297,9 +341,13 @@ export class ValetScene {
       rect(ctx, ox - 9, oy - 2, 18, 4, C.cream, 0.8);
     }
 
-    // dog
+    // dog (with a little shadow)
     const dog = this.dog;
     ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(dog.x + 2, dog.y + 7, 15, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.translate(dog.x, dog.y);
     const da = Math.atan2(dog.ty - dog.y, dog.tx - dog.x);
     ctx.rotate(da);
@@ -321,10 +369,14 @@ export class ValetScene {
       stamp(ctx, 'DOG! AUTO-BRAKE', this.x, this.y - 50, { size: 14, bg: ACCENT, rot: -0.06 });
     }
 
-    // the Denali XL
+    // the Denali XL (grounded by its shadow)
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.th);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
+    ctx.beginPath();
+    ctx.ellipse(2, 5, CAR.len / 2 + 7, CAR.wid / 2 + 7, 0, 0, Math.PI * 2);
+    ctx.fill();
     if (this.v < -2) {
       ctx.strokeStyle = C.cream;
       ctx.globalAlpha = 0.25 + 0.15 * Math.sin(this.tAll * 9);

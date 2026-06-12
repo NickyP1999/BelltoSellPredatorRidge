@@ -1,5 +1,5 @@
 import { drawText, wrap, rect, frame, clamp, lerp, pointIn, shuffle } from '../util.js';
-import { C, easeOutCubic, easeOutExpo, easeOutBack, halftone, sparkle, speedlines, stamp } from '../theme.js';
+import { C, easeOutCubic, easeOutExpo, easeOutBack, halftone, motes, sparkle, speedlines, stamp } from '../theme.js';
 import { ENCOUNTERS, TAGS, RARITY } from '../data/cards.js';
 import { PLAYER_NAME } from '../config.js';
 
@@ -70,8 +70,139 @@ function drawTagIcon(ctx, tag, cx, cy, r, color, alpha = 1) {
   ctx.restore();
 }
 
-// Flat cel bust on an accent block — geometric, confident, original.
-function drawGuestPanel(ctx, e, mood, tIn) {
+// Flat cel busts on an accent block — distinctive hair, caps, glasses,
+// jewellery per guest; geometric, confident, original.
+function drawBust(ctx, cx, base, s, look, m) {
+  // shoulders + collar shadow
+  ctx.fillStyle = look.shirt;
+  ctx.beginPath();
+  ctx.moveTo(cx - 44 * s, base);
+  ctx.quadraticCurveTo(cx, base - 34 * s, cx + 44 * s, base);
+  ctx.fill();
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.moveTo(cx - 10 * s, base - 28 * s);
+  ctx.lineTo(cx + 10 * s, base - 28 * s);
+  ctx.lineTo(cx, base - 16 * s);
+  ctx.fill();
+  // neck + head
+  ctx.fillStyle = look.skin;
+  ctx.fillRect(cx - 7 * s, base - 40 * s, 14 * s, 16 * s);
+  const hy = base - 88 * s;
+  ctx.beginPath();
+  ctx.moveTo(cx - 20 * s, hy + 10 * s);
+  ctx.quadraticCurveTo(cx - 20 * s, hy, cx, hy);
+  ctx.quadraticCurveTo(cx + 20 * s, hy, cx + 20 * s, hy + 10 * s);
+  ctx.lineTo(cx + 20 * s, hy + 38 * s);
+  ctx.quadraticCurveTo(cx + 20 * s, hy + 50 * s, cx, hy + 50 * s);
+  ctx.quadraticCurveTo(cx - 20 * s, hy + 50 * s, cx - 20 * s, hy + 38 * s);
+  ctx.fill();
+
+  // hair / headwear
+  const style = look.style || 'short';
+  ctx.fillStyle = look.hair;
+  if (style === 'bob') {
+    ctx.beginPath();
+    ctx.moveTo(cx - 25 * s, hy + 44 * s);
+    ctx.quadraticCurveTo(cx - 27 * s, hy - 8 * s, cx, hy - 9 * s);
+    ctx.quadraticCurveTo(cx + 27 * s, hy - 8 * s, cx + 25 * s, hy + 44 * s);
+    ctx.lineTo(cx + 16 * s, hy + 44 * s);
+    ctx.quadraticCurveTo(cx + 19 * s, hy + 10 * s, cx, hy + 7 * s);
+    ctx.quadraticCurveTo(cx - 19 * s, hy + 10 * s, cx - 16 * s, hy + 44 * s);
+    ctx.closePath();
+    ctx.fill();
+  } else if (style === 'cap') {
+    // hair fringe peeking out
+    ctx.fillRect(cx - 19 * s, hy + 7 * s, 38 * s, 5 * s);
+    // golf cap dome + brim
+    ctx.fillStyle = '#e6ddc8';
+    ctx.beginPath();
+    ctx.moveTo(cx - 22 * s, hy + 9 * s);
+    ctx.quadraticCurveTo(cx - 22 * s, hy - 12 * s, cx, hy - 12 * s);
+    ctx.quadraticCurveTo(cx + 22 * s, hy - 12 * s, cx + 22 * s, hy + 9 * s);
+    ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx, hy + 10 * s, 26 * s, 5 * s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = C.ink;
+    ctx.beginPath();
+    ctx.arc(cx, hy - 10 * s, 2.2 * s, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // short / part / long all share the swept top
+    ctx.beginPath();
+    ctx.moveTo(cx - 22 * s, hy + 26 * s);
+    ctx.quadraticCurveTo(cx - 24 * s, hy - 6 * s, cx, hy - 5 * s);
+    ctx.quadraticCurveTo(cx + 24 * s, hy - 6 * s, cx + 22 * s, hy + 26 * s);
+    ctx.lineTo(cx + 14 * s, hy + 12 * s);
+    ctx.quadraticCurveTo(cx, hy + 4 * s, cx - 14 * s, hy + 12 * s);
+    ctx.fill();
+    if (style === 'long') {
+      ctx.beginPath();
+      ctx.moveTo(cx - 21 * s, hy + 14 * s);
+      ctx.quadraticCurveTo(cx - 28 * s, hy + 50 * s, cx - 24 * s, base - 32 * s);
+      ctx.lineTo(cx - 13 * s, base - 32 * s);
+      ctx.quadraticCurveTo(cx - 17 * s, hy + 40 * s, cx - 15 * s, hy + 16 * s);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(cx + 21 * s, hy + 14 * s);
+      ctx.quadraticCurveTo(cx + 28 * s, hy + 50 * s, cx + 24 * s, base - 32 * s);
+      ctx.lineTo(cx + 13 * s, base - 32 * s);
+      ctx.quadraticCurveTo(cx + 17 * s, hy + 40 * s, cx + 15 * s, hy + 16 * s);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // face
+  ctx.strokeStyle = C.ink;
+  ctx.lineWidth = 2.4 * s;
+  ctx.lineCap = 'round';
+  const ey = hy + 24 * s;
+  ctx.beginPath();
+  if (m === 'happy') {
+    ctx.moveTo(cx - 13 * s, ey); ctx.quadraticCurveTo(cx - 9 * s, ey - 4 * s, cx - 5 * s, ey);
+    ctx.moveTo(cx + 5 * s, ey); ctx.quadraticCurveTo(cx + 9 * s, ey - 4 * s, cx + 13 * s, ey);
+  } else {
+    ctx.moveTo(cx - 13 * s, ey); ctx.lineTo(cx - 5 * s, ey + (m === 'cold' ? 2 * s : 0));
+    ctx.moveTo(cx + 13 * s, ey); ctx.lineTo(cx + 5 * s, ey + (m === 'cold' ? 2 * s : 0));
+  }
+  ctx.stroke();
+  const my = hy + 38 * s;
+  ctx.beginPath();
+  if (m === 'happy') ctx.arc(cx, my - 2 * s, 6 * s, 0.2 * Math.PI, 0.8 * Math.PI);
+  else if (m === 'cold') ctx.arc(cx, my + 5 * s, 6 * s, 1.2 * Math.PI, 1.8 * Math.PI);
+  else { ctx.moveTo(cx - 5 * s, my); ctx.lineTo(cx + 5 * s, my); }
+  ctx.stroke();
+
+  // accessories
+  if (look.acc === 'glasses') {
+    ctx.strokeStyle = C.ink;
+    ctx.lineWidth = 1.8 * s;
+    ctx.beginPath();
+    ctx.arc(cx - 9 * s, ey, 6.5 * s, 0, Math.PI * 2);
+    ctx.arc(cx + 9 * s, ey, 6.5 * s, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx - 2.5 * s, ey - 1 * s);
+    ctx.lineTo(cx + 2.5 * s, ey - 1 * s);
+    ctx.stroke();
+  } else if (look.acc === 'earrings') {
+    sparkle(ctx, cx - 20 * s, hy + 44 * s, 3.5 * s, C.mustard);
+    sparkle(ctx, cx + 20 * s, hy + 44 * s, 3.5 * s, C.mustard);
+  } else if (look.acc === 'necklace') {
+    ctx.fillStyle = C.mustard;
+    [-8, 0, 8].forEach((dx) => {
+      ctx.beginPath();
+      ctx.arc(cx + dx * s, base - (24 - Math.abs(dx) * 0.4) * s, 1.8 * s, 0, Math.PI * 2);
+      ctx.fill();
+    });
+  }
+}
+
+function drawGuestPanel(ctx, e, mood, tIn, kick = 0) {
   const { x, y, w, h } = PORT;
   const slide = 1 - easeOutExpo(clamp(tIn / 0.5, 0, 1));
   ctx.save();
@@ -83,65 +214,25 @@ function drawGuestPanel(ctx, e, mood, tIn) {
   const bx = x + 7, by = y + 7, bw = w - 14, bh = h - 38;
   rect(ctx, bx, by, bw, bh, e.accent);
   ctx.save();
-  ctx.globalAlpha = 0.22;
+  ctx.globalAlpha *= 0.22;
   ctx.fillStyle = halftone(ctx);
   ctx.fillRect(bx + bw / 2, by, bw / 2, bh / 2);
   ctx.restore();
 
-  const couple = e.guest.includes('&') || e.guest.startsWith('The ');
-  const drawBust = (cx, base, s, look, m) => {
-    ctx.fillStyle = look.shirt;
-    ctx.beginPath();
-    ctx.moveTo(cx - 44 * s, base);
-    ctx.quadraticCurveTo(cx, base - 34 * s, cx + 44 * s, base);
-    ctx.fill();
-    ctx.fillStyle = look.skin;
-    ctx.fillRect(cx - 7 * s, base - 40 * s, 14 * s, 16 * s);
-    const hy = base - 88 * s;
-    ctx.beginPath();
-    ctx.moveTo(cx - 20 * s, hy + 10 * s);
-    ctx.quadraticCurveTo(cx - 20 * s, hy, cx, hy);
-    ctx.quadraticCurveTo(cx + 20 * s, hy, cx + 20 * s, hy + 10 * s);
-    ctx.lineTo(cx + 20 * s, hy + 38 * s);
-    ctx.quadraticCurveTo(cx + 20 * s, hy + 50 * s, cx, hy + 50 * s);
-    ctx.quadraticCurveTo(cx - 20 * s, hy + 50 * s, cx - 20 * s, hy + 38 * s);
-    ctx.fill();
-    ctx.fillStyle = look.hair;
-    ctx.beginPath();
-    ctx.moveTo(cx - 22 * s, hy + 26 * s);
-    ctx.quadraticCurveTo(cx - 24 * s, hy - 6 * s, cx, hy - 5 * s);
-    ctx.quadraticCurveTo(cx + 24 * s, hy - 6 * s, cx + 22 * s, hy + 26 * s);
-    ctx.lineTo(cx + 14 * s, hy + 12 * s);
-    ctx.quadraticCurveTo(cx, hy + 4 * s, cx - 14 * s, hy + 12 * s);
-    ctx.fill();
-    ctx.strokeStyle = C.ink;
-    ctx.lineWidth = 2.4 * s;
-    ctx.lineCap = 'round';
-    const ey = hy + 24 * s;
-    ctx.beginPath();
-    if (m === 'happy') {
-      ctx.moveTo(cx - 13 * s, ey); ctx.quadraticCurveTo(cx - 9 * s, ey - 4 * s, cx - 5 * s, ey);
-      ctx.moveTo(cx + 5 * s, ey); ctx.quadraticCurveTo(cx + 9 * s, ey - 4 * s, cx + 13 * s, ey);
-    } else {
-      ctx.moveTo(cx - 13 * s, ey); ctx.lineTo(cx - 5 * s, ey + (m === 'cold' ? 2 * s : 0));
-      ctx.moveTo(cx + 13 * s, ey); ctx.lineTo(cx + 5 * s, ey + (m === 'cold' ? 2 * s : 0));
-    }
-    ctx.stroke();
-    const my = hy + 38 * s;
-    ctx.beginPath();
-    if (m === 'happy') ctx.arc(cx, my - 2 * s, 6 * s, 0.2 * Math.PI, 0.8 * Math.PI);
-    else if (m === 'cold') ctx.arc(cx, my + 5 * s, 6 * s, 1.2 * Math.PI, 1.8 * Math.PI);
-    else { ctx.moveTo(cx - 5 * s, my); ctx.lineTo(cx + 5 * s, my); }
-    ctx.stroke();
-  };
-
+  // busts hop when a pitch lands
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(bx, by, bw, bh);
+  ctx.clip();
+  ctx.translate(0, -6 * kick);
   const base = by + bh - 2;
-  if (couple) {
-    drawBust(bx + bw / 2 - 34, base, 0.82, { ...e.look, hair: '#3d3346' }, mood);
-    drawBust(bx + bw / 2 + 26, base, 1, e.look, mood);
+  if (e.look2) {
+    drawBust(ctx, bx + bw / 2 - 36, base, 0.82, e.look2, mood);
+    drawBust(ctx, bx + bw / 2 + 26, base, 1, e.look, mood);
   } else {
-    drawBust(bx + bw / 2, base, 1.05, e.look, mood);
+    drawBust(ctx, bx + bw / 2, base, 1.05, e.look, mood);
   }
+  ctx.restore();
 
   drawText(ctx, e.guest.toUpperCase(), x + w / 2, y + h - 26, { font: 'display', size: 19, color: C.cream, align: 'center', spacing: 1 });
   ctx.restore();
@@ -356,6 +447,7 @@ export class PitchScene {
     this.history.push({ card: pd.card, crit: pd.crit, gained: pd.gained });
     if (!this.bestPlay || pd.gained > this.bestPlay.gained) this.bestPlay = { card: pd.card, gained: pd.gained };
     const tagColor = TAGS[pd.card.tag].color;
+    this.portraitKick = pd.crit ? 1 : 0.45;
     if (pd.crit) {
       this.game.audio.crit(1 + 0.12 * Math.min(this.combo, 4));
       this.hitstop = 0.09;
@@ -458,6 +550,7 @@ export class PitchScene {
     this.shake = Math.max(0, this.shake - dt * 1.8);
     this.flash = Math.max(0, this.flash - dt * 4);
     this.hintT = Math.max(0, this.hintT - dt);
+    this.portraitKick = Math.max(0, (this.portraitKick || 0) - dt * 2.5);
     for (const p of this.particles) {
       p.life += dt;
       p.x += p.vx * dt; p.y += p.vy * dt;
@@ -691,6 +784,7 @@ export class PitchScene {
 
   drawBoard(ctx, e) {
     const p = this.game.input.pointer;
+    motes(ctx, this.tAll);
 
     // ── Header
     drawText(ctx, 'LEVEL 03 · THE PITCH', 36, 12, { size: 10, weight: 700, color: e.accent, spacing: 3 });
@@ -733,7 +827,7 @@ export class PitchScene {
     // ── Guest + speech
     const ratio = this.charm / target;
     const mood = this.state === 'lost' ? 'cold' : this.state === 'won' ? 'happy' : ratio < 0.35 ? 'cold' : ratio < 0.75 ? 'neutral' : 'happy';
-    drawGuestPanel(ctx, e, mood, this.tMeet);
+    drawGuestPanel(ctx, e, mood, this.tMeet, this.portraitKick || 0);
 
     rect(ctx, SPEECH.x, SPEECH.y, SPEECH.w, SPEECH.h, C.panel);
     frame(ctx, SPEECH.x, SPEECH.y, SPEECH.w, SPEECH.h, C.edge, 1);

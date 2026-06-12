@@ -122,6 +122,22 @@ export function speedlines(ctx, cx, cy, t, color) {
   ctx.restore();
 }
 
+// Slow-drifting dust motes — ambient life over any dark scene.
+export function motes(ctx, t, n = 12, color = '#f2e9d8') {
+  ctx.save();
+  ctx.fillStyle = color;
+  for (let i = 0; i < n; i++) {
+    const sp = 6 + (i % 5) * 3;
+    const x = (i * 173.3 + t * sp) % 1000 - 20;
+    const y = (i * 97.7 + Math.sin(t * 0.5 + i * 1.7) * 36 + t * 3) % 580 - 20;
+    ctx.globalAlpha = 0.04 + 0.035 * (1 + Math.sin(t * 0.8 + i * 2.1));
+    ctx.beginPath();
+    ctx.arc(x, y, 1.4 + (i % 3) * 0.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
 // Small rotated label chip — tag stamps, status flags.
 export function stamp(ctx, text, x, y, opts = {}) {
   const { size = 13, bg = C.mustard, color = C.ink, rot = -0.07, padX = 9, padY = 4, alpha = 1 } = opts;

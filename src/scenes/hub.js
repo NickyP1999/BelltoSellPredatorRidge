@@ -1,5 +1,5 @@
 import { drawText, wrap, rect, frame, pointIn } from '../util.js';
-import { C, easeOutExpo, halftone, sparkle, stamp } from '../theme.js';
+import { C, easeOutExpo, halftone, motes, sparkle, stamp } from '../theme.js';
 import { PLAYER_NAME } from '../config.js';
 
 const W = 960, H = 540;
@@ -129,6 +129,7 @@ export class HubScene {
   draw(ctx) {
     const sv = this.game.save.data;
     rect(ctx, 0, 0, W, H, C.ink);
+    motes(ctx, this.t);
 
     // ── Masthead: rotated mustard block with offset red misprint layer
     const intro = easeOutExpo(Math.min(1, this.t / 0.6));
