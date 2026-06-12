@@ -4,6 +4,7 @@ import '@fontsource/space-grotesk/500.css';
 import '@fontsource/space-grotesk/700.css';
 import { GameAudio } from './audio.js';
 import { Save } from './save.js';
+import { TitleScene } from './scenes/title.js';
 import { HubScene } from './scenes/hub.js';
 import { LuggageScene } from './scenes/luggage.js';
 import { ValetScene } from './scenes/valet.js';
@@ -59,11 +60,13 @@ const game = {
     this.audio.whoosh();
   },
 };
+game.scenes.title = new TitleScene(game);
 game.scenes.hub = new HubScene(game);
 game.scenes.luggage = new LuggageScene(game);
 game.scenes.valet = new ValetScene(game);
 game.scenes.pitch = new PitchScene(game);
 game.scenes.finale = new FinaleScene(game);
+game.audio.muted = !!game.save.data.muted;
 
 window.addEventListener('keydown', (e) => {
   game.audio.ensure();
@@ -145,8 +148,21 @@ function tick(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
 
-  if (input.pressed.has('KeyM')) game.audio.muted = !game.audio.muted;
+  if (input.pressed.has('KeyM')) {
+    game.audio.muted = !game.audio.muted;
+    game.save.data.muted = game.audio.muted;
+    game.save.write();
+  }
   if (input.pressed.has('KeyP') || input.pressed.has('Escape')) game.paused = !game.paused;
+  if (game.paused) {
+    if (input.pressed.has('KeyR')) {
+      game.paused = false;
+      game.scene.enter({});
+    } else if (input.pressed.has('KeyB') && game.scene !== game.scenes.hub) {
+      game.paused = false;
+      game.go('hub');
+    }
+  }
 
   game.cursor = 'default';
   const tr = game.transition;
@@ -168,9 +184,20 @@ function tick(now) {
   if (game.transition) drawWipe(ctx, Math.min(1, game.transition.t));
 
   if (game.paused) {
-    rect(ctx, 0, 0, W, H, C.ink, 0.78);
-    drawText(ctx, 'PAUSED', W / 2, 210, { font: 'display', size: 72, color: C.mustard, align: 'center', spacing: 4 });
-    drawText(ctx, 'P → RESUME', W / 2, 300, { size: 12, weight: 700, color: C.dim, align: 'center', spacing: 3 });
+    rect(ctx, 0, 0, W, H, C.ink, 0.84);
+    drawText(ctx, 'PAUSED', W / 2, 158, { font: 'display', size: 72, color: C.mustard, align: 'center', spacing: 4 });
+    const opts = [
+      ['P', 'RESUME THE SHIFT'],
+      ['R', 'RESTART THIS SHIFT'],
+      ['B', 'BACK TO THE RESORT MAP'],
+      ['M', game.audio.muted ? 'SOUND ON' : 'SOUND OFF'],
+      ['F', 'FULLSCREEN'],
+    ];
+    opts.forEach(([key, label], i) => {
+      const y = 268 + i * 34;
+      drawText(ctx, key, W / 2 - 30, y - 4, { font: 'display', size: 22, color: C.mustard, align: 'right' });
+      drawText(ctx, label, W / 2 - 10, y, { size: 12, weight: 700, color: i === 0 ? C.cream : C.dim, spacing: 2 });
+    });
   }
   if (game.audio.muted) {
     drawText(ctx, 'MUTED', W - 14, H - 22, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 2 });
@@ -193,7 +220,7 @@ async function start() {
       document.fonts.load('700 16px "Space Grotesk"'),
     ]);
   } catch { /* fall back to system fonts rather than block the game */ }
-  game.go('hub');
+  game.go('title');
   requestAnimationFrame(tick);
 }
 start();

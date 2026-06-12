@@ -228,6 +228,14 @@ export class HubScene {
 
     if (this.toast) {
       stamp(ctx, this.toast.text, W / 2, 430, { size: 18, bg: C.mustard, rot: -0.04 });
+    } else if (this.sel < LEVELS.length) {
+      // one clear next action, always
+      const l = LEVELS[this.sel];
+      const open = this.isOpen(this.sel);
+      const label = open
+        ? `ENTER → ${sv.stars[l.id] > 0 ? 'REPLAY' : 'CLOCK IN'}: ${l.name}`
+        : `FINISH SHIFT ${LEVELS[this.sel - 1].num} TO UNLOCK ${l.name}`;
+      drawText(ctx, label, W / 2, 426, { font: 'display', size: 21, color: open ? C.mustard : C.faint, align: 'center', spacing: 2, alpha: 0.65 + 0.35 * Math.sin(this.t * 4.5) });
     }
 
     drawText(ctx, `←/→ CHOOSE   ·   ENTER WALK IN   ·   G GUEST BOOK (${sv.guestBook.length})   ·   F FULLSCREEN   ·   M MUTE   ·   P PAUSE`, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });

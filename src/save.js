@@ -6,6 +6,7 @@ const DEFAULTS = {
   tips: 0,
   guestBook: [],
   seenHowTo: {},
+  muted: false,
 };
 
 export class Save {
