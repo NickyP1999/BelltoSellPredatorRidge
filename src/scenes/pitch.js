@@ -816,6 +816,12 @@ export class PitchScene {
           this.flash = 0.7;
           this.shake = 0.3;
           this.spawnBurst(W / 2 - 110 + (this.starsShown - 1) * 110, 250, C.mustard, 16, 220);
+          if (this.starsShown === 3) {
+            // perfect shift — rain it down
+            this.spawnBurst(W / 2, 240, C.teal, 18, 320);
+            this.spawnBurst(W / 2 - 160, 230, C.red, 14, 300);
+            this.spawnBurst(W / 2 + 160, 230, C.cream, 14, 300);
+          }
         }
         if (this.starsShown === this.starsEarned) this.outroTyped += dt * 22;
         if (confirm && this.t > 0.6 + this.starsEarned * 0.55 + 0.3) this.game.go(this.career.scene);
@@ -1330,7 +1336,7 @@ export class PitchScene {
     rect(ctx, 620, 250, 220, 100, C.panel);
     frame(ctx, 620, 250, 220, 100, C.edge, 1);
     drawText(ctx, 'TIPS EARNED', 632, 262, { size: 9, weight: 700, color: C.faint, spacing: 2 });
-    drawText(ctx, `+${this.tipsEarned}`, 632, 274, { font: 'display', size: 42, color: C.mustard });
+    drawText(ctx, `+${Math.round(this.tipsEarned * easeOutExpo(clamp((t - 0.5) / 0.8, 0, 1)))}`, 632, 274, { font: 'display', size: 42, color: C.mustard });
     drawText(ctx, `${this.turnsLeft} TURNS BANKED`, 632, 324, { size: 10, weight: 700, color: C.teal, spacing: 1 });
     sparkle(ctx, 638, 342, 4, C.teal);
     drawText(ctx, 'BEST LINE SAVED TO YOUR GUEST BOOK', 648, 337, { size: 8, weight: 700, color: C.faint, spacing: 1 });

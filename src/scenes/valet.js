@@ -137,6 +137,7 @@ export class ValetScene {
       if (this.t > 1.6 || (confirm && this.t > 0.3)) {
         this.state = this.game.save.data.seenHowTo.valet ? 'play' : 'howto';
         this.t = 0;
+        if (this.state === 'play') this.say('ROUND 1/3 — REVERSE IN, REAR FIRST');
       }
       return;
     }
@@ -146,6 +147,7 @@ export class ValetScene {
         this.game.save.write();
         this.state = 'play';
         this.t = 0;
+        this.say('ROUND 1/3 — REVERSE IN, REAR FIRST');
       }
       return;
     }
@@ -156,11 +158,17 @@ export class ValetScene {
         this.resetRound();
         this.state = 'play';
         this.t = 0;
+        this.say(`ROUND ${this.round + 1}/3 — THE STALL GETS TIGHTER`);
       }
       return;
     }
     if (this.state === 'retry') {
-      if ((confirm || inp.pressed.has('KeyR')) && this.t > 0.5) { this.resetRound(); this.state = 'play'; this.t = 0; }
+      if ((confirm || inp.pressed.has('KeyR')) && this.t > 0.5) {
+        this.resetRound();
+        this.state = 'play';
+        this.t = 0;
+        this.say(`ROUND ${this.round + 1}/3 — FRESH START, SAME STALL`);
+      }
       return;
     }
     if (this.state === 'stars') {

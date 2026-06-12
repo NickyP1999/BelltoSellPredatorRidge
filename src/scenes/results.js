@@ -18,17 +18,41 @@ export class Ceremony {
     this.t = 0;
     this.shown = 0;
     this.flash = 0;
+    this.confetti = [];
+    this.popped = false;
+  }
+
+  pop() {
+    const colors = [C.mustard, C.red, C.teal, C.cream, C.violet];
+    for (let i = 0; i < 46; i++) {
+      const a = -Math.PI / 2 + (Math.random() - 0.5) * 2.2;
+      const v = 180 + Math.random() * 260;
+      this.confetti.push({
+        x: 480 + (Math.random() - 0.5) * 300, y: 256,
+        vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+        life: 0, max: 0.9 + Math.random() * 0.6,
+        r: 4 + Math.random() * 6, color: colors[i % colors.length],
+        rot: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 10,
+      });
+    }
   }
 
   // Returns true when the player confirms past the ceremony.
   update(dt) {
     this.t += dt;
     this.flash = Math.max(0, this.flash - dt * 4);
+    for (const p of this.confetti) {
+      p.life += dt;
+      p.x += p.vx * dt; p.y += p.vy * dt;
+      p.vy += 460 * dt; p.rot += p.vr * dt;
+    }
+    this.confetti = this.confetti.filter((p) => p.life < p.max);
     const target = Math.min(this.stars, Math.floor(Math.max(0, this.t - 0.6) / 0.55));
     while (this.shown < target) {
       this.shown++;
       this.game.audio.bell(1 + this.shown * 0.2);
       if (this.shown === this.stars) this.game.audio.stab(1.5, { when: 0.1 });
+      if (this.shown === 3 && !this.popped) { this.popped = true; this.pop(); }
       this.flash = 0.7;
     }
     const inp = this.game.input;
@@ -63,6 +87,9 @@ export class Ceremony {
 
     if (Math.sin(this.t * 5.5) > -0.25 && this.t > 0.6 + this.stars * 0.55 + 0.3) {
       drawText(ctx, this.nextLabel, W / 2, 442, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
+    }
+    for (const p of this.confetti) {
+      sparkle(ctx, p.x, p.y, p.r * (1 - p.life / p.max), p.color, { rot: p.rot, alpha: 1 - p.life / p.max });
     }
     if (this.flash > 0) rect(ctx, 0, 0, W, H, C.cream, this.flash * 0.45);
   }

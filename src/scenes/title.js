@@ -26,7 +26,7 @@ export class TitleScene {
 
     const k = easeOutExpo(Math.min(1, this.t / 0.8));
     ctx.save();
-    ctx.translate(480, 220);
+    ctx.translate(480, 220 + Math.sin(this.t * 1.1) * 3);
     ctx.rotate(-0.045);
     ctx.shadowColor = 'rgba(0,0,0,0.65)';
     ctx.shadowBlur = 30;
@@ -41,6 +41,22 @@ export class TitleScene {
       ctx.fillRect(120, -80, 210, 160);
       ctx.restore();
       drawText(ctx, 'BELL TO SELL', 0, -62, { font: 'display', size: 116, color: C.ink, align: 'center', spacing: 3 });
+      // periodic sheen sweep across the slab
+      const sweep = (this.t % 3.4) / 3.4;
+      if (sweep < 0.3) {
+        const sx = -390 + (sweep / 0.3) * 780;
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(-330, -80, 660, 160);
+        ctx.clip();
+        const sg = ctx.createLinearGradient(sx - 70, 0, sx + 70, 0);
+        sg.addColorStop(0, 'rgba(255,255,255,0)');
+        sg.addColorStop(0.5, 'rgba(255,255,255,0.16)');
+        sg.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = sg;
+        ctx.fillRect(sx - 70, -80, 140, 160);
+        ctx.restore();
+      }
     }
     ctx.restore();
 
