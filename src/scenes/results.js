@@ -1,12 +1,12 @@
 import { drawText, rect } from '../util.js';
-import { C, easeOutBack, sparkle } from '../theme.js';
+import { C, easeOutBack, easeOutExpo, sparkle, stamp } from '../theme.js';
 import { clamp } from '../util.js';
 
 // Shared end-of-level star ceremony (Levels 1 & 2 — The Pitch has its own).
 export class Ceremony {
   constructor(game) { this.game = game; }
 
-  start({ label, stars, score, best, statLine, hintLine, nextLabel }) {
+  start({ label, stars, score, best, statLine, hintLine, nextLabel, newBest = false }) {
     this.label = label;
     this.stars = stars;
     this.score = score;
@@ -14,6 +14,7 @@ export class Ceremony {
     this.statLine = statLine;
     this.hintLine = hintLine;
     this.nextLabel = nextLabel;
+    this.newBest = newBest;
     this.t = 0;
     this.shown = 0;
     this.flash = 0;
@@ -52,7 +53,11 @@ export class Ceremony {
       }
     }
 
-    drawText(ctx, `SCORE  ${this.score}`, W / 2, 322, { font: 'display', size: 40, color: C.cream, align: 'center', spacing: 2 });
+    const reveal = easeOutExpo(clamp((this.t - 0.25) / 1.0, 0, 1));
+    drawText(ctx, `SCORE  ${Math.round(this.score * reveal)}`, W / 2, 322, { font: 'display', size: 40, color: C.cream, align: 'center', spacing: 2 });
+    if (this.newBest && this.t > 1.3) {
+      stamp(ctx, 'NEW BEST!', W / 2 + 178, 338, { size: 15, bg: C.teal, rot: 0.08 });
+    }
     drawText(ctx, `BEST ${this.best}   ·   ${this.statLine}`, W / 2, 374, { size: 12, weight: 700, color: C.faint, align: 'center', spacing: 2 });
     if (this.hintLine) drawText(ctx, this.hintLine, W / 2, 398, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 1 });
 

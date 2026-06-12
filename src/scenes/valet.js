@@ -105,6 +105,7 @@ export class ValetScene {
   finish() {
     const stars = this.total >= 390 ? 3 : this.total >= 260 ? 2 : 1;
     const sv = this.game.save;
+    const prevBest = sv.data.best.valet;
     sv.data.stars.valet = Math.max(sv.data.stars.valet, stars);
     sv.data.best.valet = Math.max(sv.data.best.valet, this.total);
     sv.data.tips += 10 + Math.round(this.total / 20);
@@ -117,6 +118,7 @@ export class ValetScene {
       statLine: `ROUNDS ${this.roundScores.join(' · ')}`,
       hintLine: 'STRAIGHT, CENTERED AND QUICK — NO BUMPS — IS A 3-STAR SHIFT',
       nextLabel: 'ENTER → NEXT SHIFT: THE PITCH',
+      newBest: this.total > prevBest && prevBest > 0,
     });
     this.state = 'stars';
   }

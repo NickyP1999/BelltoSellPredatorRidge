@@ -597,6 +597,8 @@ export class PitchScene {
 
   finishRun() {
     const sv = this.game.save;
+    const prevBest = sv.data.best.pitch;
+    this.newBest = this.runScore > prevBest && prevBest > 0;
     this.starsEarned = this.turnsBanked >= 7 ? 3 : this.turnsBanked >= 4 ? 2 : 1;
     sv.data.stars.pitch = Math.max(sv.data.stars.pitch, this.starsEarned);
     sv.data.best.pitch = Math.max(sv.data.best.pitch, this.runScore);
@@ -1327,6 +1329,8 @@ export class PitchScene {
     drawText(ctx, 'TIPS EARNED', 632, 262, { size: 9, weight: 700, color: C.faint, spacing: 2 });
     drawText(ctx, `+${this.tipsEarned}`, 632, 274, { font: 'display', size: 42, color: C.mustard });
     drawText(ctx, `${this.turnsLeft} TURNS BANKED`, 632, 324, { size: 10, weight: 700, color: C.teal, spacing: 1 });
+    sparkle(ctx, 638, 342, 4, C.teal);
+    drawText(ctx, 'BEST LINE SAVED TO YOUR GUEST BOOK', 648, 337, { size: 8, weight: 700, color: C.faint, spacing: 1 });
 
     rect(ctx, 120, 396, 720, 52, C.mustard);
     ctx.save();
@@ -1378,7 +1382,11 @@ export class PitchScene {
       }
     }
 
-    drawText(ctx, `SCORE  ${this.runScore}`, W / 2, 320, { font: 'display', size: 40, color: C.cream, align: 'center', spacing: 2 });
+    const reveal = easeOutExpo(clamp((this.t - 0.25) / 1.0, 0, 1));
+    drawText(ctx, `SCORE  ${Math.round(this.runScore * reveal)}`, W / 2, 320, { font: 'display', size: 40, color: C.cream, align: 'center', spacing: 2 });
+    if (this.newBest && this.t > 1.3) {
+      stamp(ctx, 'NEW BEST!', W / 2 + 178, 336, { size: 15, bg: C.teal, rot: 0.08 });
+    }
     drawText(ctx, `BEST ${this.game.save.data.best.pitch}   ·   TURNS BANKED ${this.turnsBanked}   ·   TIPS ${this.game.save.data.tips}`, W / 2, 372, { size: 12, weight: 700, color: C.faint, align: 'center', spacing: 2 });
     drawText(ctx, 'FASTER CLOSES BANK MORE TURNS — 7 BANKED IS A 3-STAR SHIFT', W / 2, 396, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 1 });
 

@@ -103,6 +103,7 @@ export class LuggageScene {
     const score = Math.max(0, this.stack.length * 120 + Math.round(this.timeBank + this.timeLeft) * 6 - this.drops * 40);
     const stars = score >= 1000 ? 3 : score >= 750 ? 2 : 1;
     const sv = this.game.save;
+    const prevBest = sv.data.best.luggage;
     sv.data.stars.luggage = Math.max(sv.data.stars.luggage, stars);
     sv.data.best.luggage = Math.max(sv.data.best.luggage, score);
     sv.data.tips += 10 + this.stack.length * 3;
@@ -115,6 +116,7 @@ export class LuggageScene {
       statLine: `${this.stack.length}/8 BAGS DELIVERED · ${this.drops} LOST · LOBBY + COTTAGE RUN`,
       hintLine: 'EVERY BAG DELIVERED AND NOTHING DROPPED IS A 3-STAR SHIFT',
       nextLabel: 'ENTER → NEXT SHIFT: VALET PRECISION',
+      newBest: score > prevBest && prevBest > 0,
     });
     this.state = 'stars';
   }
