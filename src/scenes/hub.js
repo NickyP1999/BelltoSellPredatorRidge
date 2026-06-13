@@ -8,7 +8,7 @@ const W = 960, H = 540;
 const LEVELS = [
   { id: 'luggage', num: '01', name: 'LUGGAGE RUSH', sub: 'THE LODGE', accent: '#d94f30', x: 48, y: 206, w: 272, h: 240, tilt: -0.012, scene: 'luggage' },
   { id: 'valet', num: '02', name: 'SHUTTLE PRECISION', sub: 'RESORT SHUTTLE', accent: '#3fb8a8', x: 344, y: 206, w: 272, h: 240, tilt: 0.008, scene: 'valet' },
-  { id: 'pitch', num: '03', name: 'THE PITCH', sub: 'SALES CENTRE', accent: '#f2b63a', x: 640, y: 206, w: 272, h: 240, tilt: -0.008, scene: 'pitch' },
+  { id: 'pitch', num: '03', name: 'THE PITCH', sub: 'REAL ESTATE SALES OFFICE', accent: '#f2b63a', x: 640, y: 206, w: 272, h: 240, tilt: -0.008, scene: 'pitch' },
 ];
 
 const PROMO = { x: 48, y: 452, w: 560, h: 40 };
@@ -262,7 +262,7 @@ export class HubScene {
 
     if (!entries.length) {
       drawText(ctx, 'No guests charmed yet.', 480, 260, { size: 16, weight: 500, color: C.ink, align: 'center' });
-      drawText(ctx, 'THE PITCH IS OPEN AT THE SALES CENTRE →', 480, 290, { size: 10, weight: 700, color: '#6b6357', align: 'center', spacing: 2 });
+      drawText(ctx, 'THE PITCH IS OPEN AT THE SALES OFFICE →', 480, 290, { size: 10, weight: 700, color: '#6b6357', align: 'center', spacing: 2 });
     } else {
       let y = 186;
       for (const g of entries.slice(0, 3)) {

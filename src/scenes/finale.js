@@ -10,13 +10,13 @@ const LETTER = [
   'We watched three shifts this week.',
   'You kept a tower of luggage upright through a crowded lobby — grace under pressure, with a smile.',
   "You backed the Yukon XL into the tightest bay on the property with a hand's width to spare — precision, with guests aboard.",
-  'And at the Sales Centre you listened first, matched the need, and never pushed. Marisol booked the patio at sunset. Gord played the Ridge. The Albrights asked for the Woodside floor plans.',
-  "Besides — you've been putting Ellison Landing into guests' hands for years. Two bottles of water, every room.",
+  'And at the Sales Office you listened first, matched the need, and never pushed. Marisol booked the patio at sunset. Gord played the Ridge. The Albrights asked for the Woodside floor plans.',
+  "Besides — since your first week in May, you've been putting Ellison Landing into guests' hands. Two bottles of water, every room.",
   'That is not bell work. That is sales work.',
   'Effective immediately, you are promoted to:',
 ];
 const TITLE_LINE = 'SALES ASSISTANT — REAL ESTATE';
-const TITLE_SUB = 'ELLISON LANDING SALES CENTRE';
+const TITLE_SUB = 'REAL ESTATE SALES OFFICE — SELLING ELLISON LANDING';
 const SIGNOFF = ['Welcome to the other side of the bell desk.', '— Management, Predator Ridge'];
 
 export class FinaleScene {
@@ -153,7 +153,7 @@ export class FinaleScene {
   }
 
   drawWalk(ctx) {
-    // sunset over the Okanagan, lodge to sales centre, left to right
+    // sunset over the Okanagan, lodge to the sales office, left to right
     rect(ctx, 0, 0, W, 200, '#2a1f3d');
     rect(ctx, 0, 200, W, 90, '#6e3a52');
     rect(ctx, 0, 290, W, 70, '#d94f30');
@@ -169,14 +169,14 @@ export class FinaleScene {
     ctx.fill();
     rect(ctx, 0, 400, W, H - 400, C.ink);
 
-    // lodge silhouette (left) and sales centre (right)
+    // lodge silhouette (left) and the sales office (right)
     rect(ctx, 40, 280, 220, 120, '#0a0a0c');
     rect(ctx, 80, 240, 140, 50, '#0a0a0c');
     drawText(ctx, 'THE LODGE', 150, 414, { size: 9, weight: 700, color: C.faint, align: 'center', spacing: 2 });
     rect(ctx, 740, 300, 170, 100, '#0a0a0c');
     rect(ctx, 770, 270, 110, 36, '#0a0a0c');
     sparkle(ctx, 825, 254, 9, C.mustard);
-    drawText(ctx, 'REAL ESTATE SALES CENTRE', 825, 414, { size: 9, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
+    drawText(ctx, 'REAL ESTATE SALES OFFICE', 825, 414, { size: 9, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
 
     // one last run in the Porsche NXT cart — box on the back, left to right
     const wx = 150 + easeOutExpo(clamp(this.t / 3.2, 0, 1)) * 560;

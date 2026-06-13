@@ -11,7 +11,11 @@
 >    Level 2 = SHUTTLE PRECISION, all portico wording purged
 > 4. NXT cart: luggage to cottages + other shuttles. ✅ Cottage Run stands
 > 5. Luggage does go through the Lodge lobby. ✅ Leg 1 stands
-> 6. "Bellman" ✅  7. "Sales Assistant Real Estate" ✅  8. Sales Centre super close ✅
+> 6. "Bellman" ✅  7. "Sales Assistant Real Estate" — and the building is the **Real
+>    Estate Sales Office**, selling **Ellison Landing** homes (a new development) ✅
+>    fixed everywhere  8. The office is super close to the Lodge ✅
+> TENURE (canon): Nico started at Predator Ridge in **May 2026** — the letter's
+> water-bottle line now reads "since your first week in May" instead of "for years."
 > BONUS (canon): bellmen stock every room with TWO Ellison Landing–branded water
 > bottles — now cited in the promotion letter as proof he's been carrying the brand
 > for years.

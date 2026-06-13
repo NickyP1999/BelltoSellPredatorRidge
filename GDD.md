@@ -7,7 +7,7 @@
 
 **A 10-minute jazz-noir career game that proves, without saying it out loud, that Nico is
 already doing sales work — so the person playing it finishes thinking "why isn't this
-guy at the Sales Centre yet?"**
+guy at the Real Estate Sales Office yet?"**
 
 ## 2. The real-world objective (this shapes every decision)
 
@@ -29,7 +29,7 @@ guy at the Sales Centre yet?"**
 4. **Helpful beats pushy** — the sales philosophy is the moral of the game and the tone
    of every line of dialogue. Losing lines are always the pushy ones.
 5. **Left to right, always forward.** Career order, level motion, and UI reading
-   direction all move the same way the story does: toward the Sales Centre.
+   direction all move the same way the story does: toward the Sales Office.
 
 ## 4. The 10-minute arc
 
@@ -134,7 +134,7 @@ all synthesized, no assets. Session title cards per level; diagonal wipes betwee
 
 Sunset NXT-cart drive → cream letter, typed reveal: three shifts, three skills, one
 verdict — *"That is not bell work. That is sales work."* → **SALES ASSISTANT — REAL
-ESTATE, Ellison Landing Sales Centre** → PROMOTED stamp → New Game+ hub. The fiction
+ESTATE, Real Estate Sales Office — selling Ellison Landing** → PROMOTED stamp → New Game+ hub. The fiction
 never breaks. The real conversation happens off-screen, after the manager finishes.
 
 ## 13. Success metrics
