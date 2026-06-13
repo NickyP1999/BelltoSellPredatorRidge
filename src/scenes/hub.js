@@ -243,13 +243,17 @@ export class HubScene {
     if (this.toast) {
       stamp(ctx, this.toast.text, W / 2, 430, { size: 18, bg: C.mustard, rot: -0.04 });
     } else if (this.sel < LEVELS.length) {
-      // one clear next action, always
+      // one clear next action, always — on its own ink ribbon so it reads as a
+      // deliberate marquee instead of floating over the poster row
       const l = LEVELS[this.sel];
       const open = this.isOpen(this.sel);
       const label = open
         ? `ENTER → ${sv.stars[l.id] > 0 ? 'REPLAY' : 'CLOCK IN'}: ${l.name}`
         : `FINISH SHIFT ${LEVELS[this.sel - 1].num} TO UNLOCK ${l.name}`;
-      drawText(ctx, label, W / 2, 426, { font: 'display', size: 21, color: open ? C.mustard : C.faint, align: 'center', spacing: 2, alpha: 0.65 + 0.35 * Math.sin(this.t * 4.5) });
+      rect(ctx, 0, 412, W, 34, C.ink, 0.78);
+      rect(ctx, 0, 412, W, 1, C.edge, 0.6);
+      rect(ctx, 0, 445, W, 1, C.edge, 0.6);
+      drawText(ctx, label, W / 2, 419, { font: 'display', size: 21, color: open ? C.mustard : C.faint, align: 'center', spacing: 2, alpha: 0.65 + 0.35 * Math.sin(this.t * 4.5) });
     }
 
     drawText(ctx, `←/→ CHOOSE   ·   ENTER WALK IN   ·   G GUEST BOOK (${sv.guestBook.length})   ·   F FULLSCREEN   ·   M MUTE   ·   P PAUSE`, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });

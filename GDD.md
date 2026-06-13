@@ -182,3 +182,28 @@ never breaks. The real conversation happens off-screen, after the manager finish
 
 **Post-promotion wishlist (not for the demo):** Pro Shop (spend tips), Daily Shift +
 streaks, card collection/unlocks, VIP events, ghosts, touch controls, NG+ difficulty.
+
+## 15. S-tier audit (June 12, 2026) — the critical pass, worked top-down
+
+Full-screen captures of every scene were reviewed against "would a manager mistake
+this for a cheap mobile game?" Verdicts:
+
+| Screen | Verdict |
+|---|---|
+| Title, hub, Pitch, finale letter, Career Report | Premium — ship as-is |
+| **Lodge lobby (Leg 1)** | **WEAKEST SCREEN — and it's the first minute.** Flat walls, bare painting rectangles, outline-box cart |
+| Cottage Run (Leg 2) | Flat: triangle trees, empty dusk, no depth layers |
+| Shuttle lot | Good bones; could use more ground texture/shadows |
+| Audio | **No music anywhere** — SFX identity is strong but the air is dead |
+
+**S-tier backlog (in order):**
+S1. ~~Hub CTA marquee ribbon (stop the CTA floating over the poster row).~~ ✅ June 12
+S2. Lodge lobby art pass: wainscoting + warm sconce pools, framed art with mats,
+    reception desk silhouette, area rug under the path, soft floor reflections,
+    a proper brass bell cart (match the title-screen silhouette quality).
+S3. Cottage Run art pass: layered parallax hills, Okanagan lake glint, lit cottage
+    windows ahead, fireflies after the half-way mark, rim light on the NXT.
+S4. Jazz loop: synthesized walking bass + brushed ride swing, hub/title only at
+    first (levels keep their SFX focus), ducks under stabs, respects M.
+S5. Shuttle lot ground pass: oil stains, painted arrows, longer light pools.
+S6. Re-audit everything at 1080p; if nothing reads mobile, declare done.
