@@ -68,6 +68,7 @@ export class TitleScene {
     if (this.t > 1.2) {
       drawText(ctx, 'ENTER → CLOCK IN', 480, 444, { font: 'display', size: 28, color: C.mustard, align: 'center', spacing: 3, alpha: 0.6 + 0.4 * Math.sin(this.t * 4.5) });
     }
-    drawText(ctx, 'ORIGINAL TRIBUTE — NOT AFFILIATED WITH PREDATOR RIDGE RESORT', 480, 516, { size: 8, weight: 500, color: C.faint, align: 'center', spacing: 2, alpha: 0.7 });
+    drawText(ctx, 'CONFIDENTIAL — FOR PREDATOR RIDGE MANAGEMENT ONLY · NOT TO BE SHARED OUTSIDE MANAGEMENT', 480, 504, { size: 8, weight: 700, color: C.mustard, align: 'center', spacing: 2, alpha: 0.85 });
+    drawText(ctx, 'ORIGINAL TRIBUTE — NOT AFFILIATED WITH PREDATOR RIDGE RESORT', 480, 518, { size: 8, weight: 500, color: C.faint, align: 'center', spacing: 2, alpha: 0.7 });
   }
 }

@@ -80,6 +80,10 @@ Skips everywhere; an experienced run is ~6 minutes; a fumbling first run must st
   descriptors only ("Lodge Valet").
 - **Humor:** light bellman-life insider jokes (doors, wet floors, the marmot's right of
   way). Never about real coworkers. Never at a guest's expense.
+- **Audience lock (Nico, June 12):** the game is for management only — the title screen
+  and README carry "CONFIDENTIAL — FOR PREDATOR RIDGE MANAGEMENT ONLY · NOT TO BE SHARED
+  OUTSIDE MANAGEMENT." Never remove it; never add public-sharing features (social links,
+  public leaderboards).
 - **Voice:** the player character is warm, competent, never sarcastic to guests.
   No fourth-wall winks — "SALES COWBOY" was cut by Nico (June 12); the pitch outro is
   now the in-fiction "WORD TRAVELS FAST AT THE SALES OFFICE..."

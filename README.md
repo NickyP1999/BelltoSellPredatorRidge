@@ -1,5 +1,8 @@
 # BELL TO SELL — A Predator Ridge Career Game
 
+> **CONFIDENTIAL — FOR PREDATOR RIDGE MANAGEMENT ONLY.**
+> This game and its link are not to be shared with anyone outside of management.
+
 A 5–10 minute jazz-noir arcade game that makes the case, shift by shift, for promoting
 one bellman — **Nico** — to **Sales Assistant, Real Estate** at Predator Ridge Resort
 (Vernon, BC). Three shifts, left to right, each one a skill the Real Estate Sales
