@@ -443,7 +443,7 @@ export class LuggageScene {
         ctx.fillRect(dx - 34, 296, 120, 110);
         rect(ctx, dx + 20, 338, 12, 4, C.mustard, 0.9);
         rect(ctx, dx + 24, 342, 4, 14, '#a87f2a');
-        drawText(ctx, 'RECEPTION', dx + 90, 384, { size: 8, weight: 700, color: '#a87f2a', align: 'center', spacing: 2 });
+        drawText(ctx, 'FRONT DESK', dx + 90, 384, { size: 8, weight: 700, color: '#a87f2a', align: 'center', spacing: 2 });
       }
     }
 

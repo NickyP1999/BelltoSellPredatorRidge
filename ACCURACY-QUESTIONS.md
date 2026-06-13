@@ -25,6 +25,8 @@
 > or price-comparison wine claims.
 > - 20 addendum (canon, June 12): the Porsche NXT's max speed is **24 km/h** — the
 >   Cottage Run speed HUD is calibrated to it (full bar = 24, safe line ≈ 14).
+> - Lobby addendum (canon, June 12): the Lodge's check-in counter is called the
+>   **FRONT DESK**, not "reception" — labeled accordingly in Leg 1.
 
 ## A. Your actual job — ✅ ANSWERED & IMPLEMENTED
 > 1. It's a **GMC Yukon XL**, not a Denali. ✅ fixed everywhere
