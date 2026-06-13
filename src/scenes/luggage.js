@@ -379,6 +379,74 @@ export class LuggageScene {
     wallG.addColorStop(1, '#0f0c13');
     ctx.fillStyle = wallG;
     ctx.fillRect(0, 104, W, FLOOR - 104);
+
+    // wainscoting with brass trim, panel seams scrolling with the room
+    rect(ctx, 0, 348, W, FLOOR - 348, '#1c1623');
+    rect(ctx, 0, 348, W, 2, '#a87f2a', 0.35);
+    for (let wx = 0; wx < WORLD; wx += 80) {
+      const sx = wx - cam;
+      if (sx < -4 || sx > W + 4) continue;
+      rect(ctx, sx, 354, 2, FLOOR - 360, '#15101b');
+    }
+
+    // framed Okanagan prints between the columns — cream mats, brass frames
+    const ART = [['#3fb8a8', '#d94f30'], ['#9b6fd1', '#f2b63a'], ['#d94f30', '#3a5a6e'], ['#f2b63a', '#3fb8a8']];
+    let ai = 0;
+    for (let wx = 120; wx < WORLD - 200; wx += 480) {
+      ai++;
+      const sx = wx - cam;
+      if (sx < -90 || sx > W + 90) continue;
+      if (DOORS.some((d) => Math.abs(d.x - wx) < 140)) continue;
+      const [c1, c2] = ART[ai % ART.length];
+      rect(ctx, sx - 34, 168, 68, 52, '#a87f2a');
+      rect(ctx, sx - 30, 172, 60, 44, C.cream);
+      rect(ctx, sx - 25, 177, 50, 34, '#161019');
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(sx - 25, 177, 50, 34);
+      ctx.clip();
+      ctx.fillStyle = c1;
+      ctx.beginPath();
+      ctx.moveTo(sx - 25, 211);
+      ctx.lineTo(sx - 7, 188);
+      ctx.lineTo(sx + 2, 211);
+      ctx.fill();
+      ctx.fillStyle = c2;
+      ctx.beginPath();
+      ctx.moveTo(sx - 6, 211);
+      ctx.lineTo(sx + 12, 184);
+      ctx.lineTo(sx + 25, 211);
+      ctx.fill();
+      ctx.fillStyle = C.mustard;
+      ctx.beginPath();
+      ctx.arc(sx + 14, 185, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    // reception desk — the lobby's anchor piece, with a clerk on the late shift
+    {
+      const dx = 60 - cam;
+      if (dx > -220 && dx < W + 30) {
+        ctx.fillStyle = '#241c2c';
+        ctx.beginPath();
+        ctx.arc(dx + 130, 332, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillRect(dx + 119, 340, 22, 22);
+        rect(ctx, dx, 356, 180, FLOOR - 356, '#221a2a');
+        rect(ctx, dx, 356, 180, 4, '#a87f2a');
+        for (let p = 0; p < 4; p++) rect(ctx, dx + 8 + p * 44, 372, 36, 46, '#1a1422');
+        const lampG = ctx.createRadialGradient(dx + 26, 346, 4, dx + 26, 346, 60);
+        lampG.addColorStop(0, 'rgba(242,182,58,0.30)');
+        lampG.addColorStop(1, 'rgba(242,182,58,0)');
+        ctx.fillStyle = lampG;
+        ctx.fillRect(dx - 34, 296, 120, 110);
+        rect(ctx, dx + 20, 338, 12, 4, C.mustard, 0.9);
+        rect(ctx, dx + 24, 342, 4, 14, '#a87f2a');
+        drawText(ctx, 'RECEPTION', dx + 90, 384, { size: 8, weight: 700, color: '#a87f2a', align: 'center', spacing: 2 });
+      }
+    }
+
     for (let wx = 0; wx < WORLD; wx += 240) {
       const sx = wx - cam;
       if (sx < -110 || sx > W + 110) continue;
@@ -390,9 +458,43 @@ export class LuggageScene {
       ctx.fillRect(sx - 91, 104, 200, 200);
       rect(ctx, sx, 104, 18, FLOOR - 104, '#1d1725');
       sparkle(ctx, sx + 9, 150, 5, C.mustard, { alpha: 0.7 });
+      // polished-floor reflection streak under each column
+      const rg = ctx.createLinearGradient(0, FLOOR, 0, FLOOR + 64);
+      rg.addColorStop(0, 'rgba(242,233,216,0.07)');
+      rg.addColorStop(1, 'rgba(242,233,216,0)');
+      ctx.fillStyle = rg;
+      ctx.fillRect(sx - 2, FLOOR, 22, 64);
+      // potted plant at every other column, clear of the auto doors
+      if (wx % 480 === 0 && wx > 0 && !DOORS.some((d) => Math.abs(d.x - wx) < 150)) {
+        rect(ctx, sx + 26, FLOOR - 26, 26, 26, '#241c2c');
+        rect(ctx, sx + 24, FLOOR - 28, 30, 4, '#a87f2a', 0.5);
+        ctx.strokeStyle = '#2c3a24';
+        ctx.lineWidth = 3;
+        for (const la of [-0.5, 0, 0.5]) {
+          ctx.beginPath();
+          ctx.moveTo(sx + 39, FLOOR - 26);
+          ctx.quadraticCurveTo(sx + 39 + la * 22, FLOOR - 48, sx + 39 + la * 30, FLOOR - 60);
+          ctx.stroke();
+        }
+      }
     }
     rect(ctx, 0, FLOOR, W, H - FLOOR, '#0f0d12');
     rect(ctx, 0, FLOOR, W, 2, C.cream, 0.18);
+
+    // burgundy runner under the cart path, brass edge rails, diamond motif
+    rect(ctx, 0, FLOOR + 8, W, 26, '#2e1518');
+    rect(ctx, 0, FLOOR + 8, W, 2, '#a87f2a', 0.5);
+    rect(ctx, 0, FLOOR + 32, W, 2, '#a87f2a', 0.5);
+    for (let wx = 0; wx < WORLD; wx += 120) {
+      const sx = wx - cam;
+      if (sx < -20 || sx > W + 20) continue;
+      ctx.save();
+      ctx.translate(sx, FLOOR + 21);
+      ctx.rotate(Math.PI / 4);
+      ctx.fillStyle = 'rgba(242,182,58,0.10)';
+      ctx.fillRect(-5, -5, 10, 10);
+      ctx.restore();
+    }
 
     if (WET.x1 - cam > 0 && WET.x0 - cam < W) {
       rect(ctx, WET.x0 - cam, FLOOR, WET.x1 - WET.x0, 24, C.teal, 0.12);
@@ -436,16 +538,30 @@ export class LuggageScene {
       drawText(ctx, open ? 'AUTO DOOR' : 'WAIT', sx, 116, { size: 8, weight: 700, color: open ? C.teal : ACCENT, align: 'center', spacing: 1 });
     }
 
-    for (const g of GUESTS) {
+    const GLOOK = [{ shirt: '#41566b', skin: '#c98c5a' }, { shirt: '#6b4156', skin: '#a9744c' }];
+    GUESTS.forEach((g, gi) => {
       const sx = g.x - cam;
-      if (sx < -40 || sx > W + 40) continue;
+      if (sx < -40 || sx > W + 40) return;
       const gy = this.guestY(g);
-      rect(ctx, sx - 10, gy - 26, 20, 30, '#2c2532');
-      ctx.fillStyle = '#2c2532';
+      const lk = GLOOK[gi % GLOOK.length];
+      const bob = Math.sin(this.tAll * 6 + g.phase * 7) * 1.2;
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
       ctx.beginPath();
-      ctx.arc(sx, gy - 34, 9, 0, Math.PI * 2);
+      ctx.ellipse(sx, gy + 5, 13, 4, 0, 0, Math.PI * 2);
       ctx.fill();
-    }
+      ctx.fillStyle = lk.shirt;
+      ctx.beginPath();
+      ctx.roundRect(sx - 10, gy - 26 + bob, 20, 30, 6);
+      ctx.fill();
+      ctx.fillStyle = lk.skin;
+      ctx.beginPath();
+      ctx.arc(sx, gy - 34 + bob, 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#221c29';
+      ctx.beginPath();
+      ctx.arc(sx, gy - 37 + bob, 8, Math.PI, Math.PI * 2);
+      ctx.fill();
+    });
 
     const ex = ELEVATOR_X - cam;
     if (ex < W + 160) {
@@ -458,21 +574,44 @@ export class LuggageScene {
       drawText(ctx, 'SERVICE EXIT', ex + 55, 112, { size: 9, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
     }
 
-    // brass cart + stack
+    // brass cart + stack — arched crown bar, brass highlights, rolling spokes
     ctx.save();
     ctx.translate(CART_SX, FLOOR - 2);
     ctx.rotate(this.lean * 0.18);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.ellipse(2, 8, 58, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
     rect(ctx, -52, -14, 104, 9, '#a87f2a');
+    rect(ctx, -52, -14, 104, 2, '#d9b25a');
     rect(ctx, -48, -74, 5, 60, '#a87f2a');
     rect(ctx, 43, -74, 5, 60, '#a87f2a');
-    rect(ctx, -48, -76, 96, 4, '#a87f2a');
+    rect(ctx, -48, -74, 2, 60, '#d9b25a');
+    rect(ctx, 43, -74, 2, 60, '#d9b25a');
+    ctx.fillStyle = '#a87f2a';
+    ctx.beginPath();
+    ctx.moveTo(-48, -72);
+    ctx.quadraticCurveTo(0, -92, 48, -72);
+    ctx.quadraticCurveTo(0, -82, -48, -72);
+    ctx.fill();
+    ctx.strokeStyle = '#d9b25a';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-44, -73);
+    ctx.quadraticCurveTo(0, -90, 44, -73);
+    ctx.stroke();
     ctx.fillStyle = '#0a0a0c';
-    [[-36, 0], [36, 0]].forEach(([wx, wy]) => {
+    const spoke = this.cx / 9;
+    [[-36, 0], [36, 0]].forEach(([wx]) => {
       ctx.beginPath();
-      ctx.arc(wx, wy, 9, 0, Math.PI * 2);
+      ctx.arc(wx, 0, 9, 0, Math.PI * 2);
       ctx.fill();
       ctx.strokeStyle = C.cream;
       ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(wx + Math.cos(spoke) * 5, Math.sin(spoke) * 5);
+      ctx.lineTo(wx - Math.cos(spoke) * 5, -Math.sin(spoke) * 5);
       ctx.stroke();
     });
     ctx.restore();

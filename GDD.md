@@ -198,9 +198,11 @@ this for a cheap mobile game?" Verdicts:
 
 **S-tier backlog (in order):**
 S1. ~~Hub CTA marquee ribbon (stop the CTA floating over the poster row).~~ ✅ June 12
-S2. Lodge lobby art pass: wainscoting + warm sconce pools, framed art with mats,
+S2. ~~Lodge lobby art pass: wainscoting + warm sconce pools, framed art with mats,
     reception desk silhouette, area rug under the path, soft floor reflections,
-    a proper brass bell cart (match the title-screen silhouette quality).
+    a proper brass bell cart (match the title-screen silhouette quality).~~ ✅ June 12
+    — also dressed the guests (skin/hair/shirt + walk bob) and gave the cart an
+    arched crown bar, brass highlights, and rolling wheel spokes.
 S3. Cottage Run art pass: layered parallax hills, Okanagan lake glint, lit cottage
     windows ahead, fireflies after the half-way mark, rim light on the NXT.
 S4. Jazz loop: synthesized walking bass + brushed ride swing, hub/title only at
