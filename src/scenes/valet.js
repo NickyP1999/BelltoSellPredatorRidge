@@ -9,17 +9,17 @@ const WALL_Y = 110;
 
 const ROUNDS = [
   {
-    stallW: 76, par: 35,
+    stallW: 76, par: 40,
     pylons: [[420, 250], [560, 360]],
     rects: [[200, 150, 110, 46, 'cart'], [520, 140, 90, 40, 'cart']],
   },
   {
-    stallW: 64, par: 35,
+    stallW: 64, par: 40,
     pylons: [[420, 250], [560, 360], [640, 200]],
     rects: [[200, 150, 110, 46, 'cart'], [520, 140, 90, 40, 'cart'], [330, 330, 70, 70, 'planter']],
   },
   {
-    stallW: 54, par: 40,
+    stallW: 54, par: 45,
     pylons: [[420, 250], [560, 360], [640, 200], [500, 470]],
     rects: [[200, 150, 110, 46, 'cart'], [520, 140, 90, 40, 'cart'], [330, 330, 70, 70, 'planter'], [760, 330, 110, 46, 'cart']],
   },
@@ -33,7 +33,11 @@ function stallRect(round) {
 function corners(x, y, th) {
   const c = Math.cos(th), s = Math.sin(th);
   const hl = CAR.len / 2, hw = CAR.wid / 2;
-  return [[hl, hw], [hl, -hw], [-hl, -hw], [-hl, hw]].map(([px, py]) => [x + px * c - py * s, y + px * s + py * c]);
+  // corners plus edge midpoints — pylons can't slip between sample points
+  return [
+    [hl, hw], [hl, -hw], [-hl, -hw], [-hl, hw],
+    [hl, 0], [-hl, 0], [0, hw], [0, -hw],
+  ].map(([px, py]) => [x + px * c - py * s, y + px * s + py * c]);
 }
 
 export class ValetScene {
@@ -91,7 +95,7 @@ export class ValetScene {
     const angleScore = Math.max(0, 70 - angleDeg * 3);
     const centerScore = Math.max(0, 50 - centerOff * 2.5);
     const timeBonus = Math.max(0, Math.round((ROUNDS[this.round].par - this.elapsed) * 2));
-    const bumpPenalty = this.bumps * 15;
+    const bumpPenalty = Math.max(0, this.bumps - 1) * 15; // first bump is free
     const score = Math.max(10, Math.round(angleScore + centerScore + timeBonus - bumpPenalty));
     this.roundScores.push(score);
     this.total += score;
@@ -238,8 +242,18 @@ export class ValetScene {
         this.bumps++;
         this.shake = 0.4;
         this.game.audio.thump();
-        this.say(this.bumps >= 3 ? 'THIRD BUMP.' : `BUMP ${this.bumps}/3`, C.red);
-        if (this.bumps >= 3) { this.state = 'retry'; this.t = 0; this.game.audio.lose(); return; }
+        if (this.bumps >= 3) {
+          // three bumps ends the round gracefully — scored low, never repeated
+          const score = 25;
+          this.roundScores.push(score);
+          this.total += score;
+          this.splash = { score, rough: true };
+          this.game.audio.lose();
+          this.state = 'parked';
+          this.t = 0;
+          return;
+        }
+        this.say(this.bumps === 1 ? 'CLOSE ONE — FIRST BUMP IS FREE' : 'BUMP 2/3 — EASY NOW', this.bumps === 1 ? ACCENT : C.red);
       }
       this.v = -this.v * 0.3;
     }
@@ -437,9 +451,14 @@ export class ValetScene {
       ctx.save();
       ctx.translate(W / 2, 190);
       ctx.scale(k, k);
-      drawText(ctx, 'PARKED.', 0, -46, { font: 'display', size: 84, color: ACCENT, align: 'center', shadow: { color: '#123832', dx: 5, dy: 5 } });
+      drawText(ctx, sp.rough ? 'ROUGH ROUND.' : 'PARKED.', 0, -46, { font: 'display', size: 84, color: sp.rough ? C.red : ACCENT, align: 'center', shadow: { color: sp.rough ? '#4a1812' : '#123832', dx: 5, dy: 5 } });
       ctx.restore();
-      if (this.t > 0.2) drawText(ctx, `ANGLE ${sp.angleDeg}°   ·   OFF-CENTRE ${sp.centerOff}PX   ·   TIME +${sp.timeBonus}   ·   BUMPS −${sp.bumpPenalty}`, W / 2, 268, { size: 12, weight: 700, color: C.dim, align: 'center', spacing: 2, alpha: Math.min(1, (this.t - 0.2) / 0.3) });
+      if (this.t > 0.2) {
+        const detail = sp.rough
+          ? 'THREE BUMPS — THE GUEST PRETENDED NOT TO SEE'
+          : `ANGLE ${sp.angleDeg}°   ·   OFF-CENTRE ${sp.centerOff}PX   ·   TIME +${sp.timeBonus}   ·   BUMPS −${sp.bumpPenalty}`;
+        drawText(ctx, detail, W / 2, 268, { size: 12, weight: 700, color: C.dim, align: 'center', spacing: 2, alpha: Math.min(1, (this.t - 0.2) / 0.3) });
+      }
       const rev = easeOutExpo(clamp((this.t - 0.35) / 0.7, 0, 1));
       drawText(ctx, `+${Math.round(sp.score * rev)}`, W / 2, 300, { font: 'display', size: 56, color: C.mustard, align: 'center' });
       const next = this.round + 1 < ROUNDS.length ? `ENTER → ROUND ${this.round + 2} (TIGHTER STALL)` : 'ENTER → COLLECT YOUR STARS';

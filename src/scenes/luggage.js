@@ -6,7 +6,7 @@ const W = 960, H = 540;
 const ACCENT = '#d94f30';
 const CART_SX = 300;   // the cart holds this screen x; the world scrolls past
 const FLOOR = 430;
-const LEAN_LIMIT = 0.5;
+const LEAN_LIMIT = 0.6;
 
 // ── leg 1: the lobby
 const WORLD = 2600;
@@ -19,7 +19,7 @@ const GUESTS = [{ x: 950, phase: 0 }, { x: 1800, phase: 0.6 }];
 const BAG_COLORS = ['#8a5a3a', '#3a5a6e', '#6e3a52', '#52663a', '#5a4a7a', '#7a6a3a', '#3a6e5e', '#9b6fd1'];
 
 // ── leg 2: the cottage run, on the Porsche NXT cart
-const RUN = { len: 2800, cottage: 2680, time: 30, safeV: 190 };
+const RUN = { len: 2800, cottage: 2680, time: 30, safeV: 215 };
 const BUMPS = [420, 820, 1260, 1690, 2160];
 const SPRINKLERS = [{ x: 620, phase: 0 }, { x: 1480, phase: 0.5 }, { x: 2380, phase: 0.25 }];
 const MARMOT_X = 1040;
@@ -54,6 +54,8 @@ export class LuggageScene {
     this.floaters = [];
     this.failLine = '';
     this.failPhase = 1;
+    this.rushed = false;
+    this.dropForgiven = false;
   }
 
   resetRun() {
@@ -64,6 +66,8 @@ export class LuggageScene {
     this.timeLeft = RUN.time;
     this.bumpsDone = new Set();
     this.marmotCd = 0;
+    this.speedWarned = false;
+    this.lateFinish = false;
     this.stack = this.bagsAtRun.slice();
   }
 
@@ -100,7 +104,8 @@ export class LuggageScene {
   }
 
   finish() {
-    const score = Math.max(0, this.stack.length * 120 + Math.round(this.timeBank + this.timeLeft) * 6 - this.drops * 40);
+    const timeScore = this.lateFinish ? 0 : Math.round(this.timeBank + this.timeLeft) * 6;
+    const score = Math.max(0, this.stack.length * 120 + timeScore - this.drops * 40);
     const stars = score >= 1000 ? 3 : score >= 750 ? 2 : 1;
     const sv = this.game.save;
     const prevBest = sv.data.best.luggage;
@@ -113,7 +118,9 @@ export class LuggageScene {
       label: 'LEVEL 01 — LUGGAGE RUSH',
       stars, score,
       best: sv.data.best.luggage,
-      statLine: `${this.stack.length}/8 BAGS DELIVERED · ${this.drops} LOST · LOBBY + COTTAGE RUN`,
+      statLine: this.lateFinish
+        ? `${this.stack.length}/8 BAGS — THE GUESTS MET YOU ON THE PATH`
+        : `${this.stack.length}/8 BAGS DELIVERED · ${this.drops} LOST · LOBBY + COTTAGE RUN`,
       hintLine: 'EVERY BAG DELIVERED AND NOTHING DROPPED IS A 3-STAR SHIFT',
       nextLabel: 'ENTER → NEXT SHIFT: VALET PRECISION',
       newBest: score > prevBest && prevBest > 0,
@@ -172,9 +179,18 @@ export class LuggageScene {
     }
     if (this.state === 'play2') { this.updateRun(dt, inp); return; }
 
-    // ── leg 1: the lobby
+    // ── leg 1: the lobby. Out of time never strands you — the cart simply
+    // leaves now, with whatever you caught.
     this.timeLeft -= dt;
-    if (this.timeLeft <= 0) { this.fail('THE GUESTS REACHED THE DESK BEFORE THEIR BAGS DID.', 1); return; }
+    if (this.timeLeft <= 0) {
+      this.timeBank = 0;
+      this.bagsAtRun = this.stack.slice();
+      this.rushed = true;
+      this.game.audio.thump();
+      this.state = 'handoff';
+      this.t = 0;
+      return;
+    }
 
     const right = inp.down.has('ArrowRight') || inp.down.has('KeyD');
     const left = inp.down.has('ArrowLeft') || inp.down.has('KeyA');
@@ -237,13 +253,19 @@ export class LuggageScene {
     this.lean += this.omega * dt;
     if (Math.abs(this.lean) > LEAN_LIMIT && this.stack.length > 0) {
       this.stack.pop();
-      this.drops++;
       this.lean *= 0.45;
       this.omega *= 0.3;
       this.game.audio.thump();
       this.shake = 0.4;
       this.burst(CART_SX + Math.sign(this.lean) * 50, FLOOR - 40, ACCENT, 12);
-      this.float('BAG DOWN!', CART_SX, FLOOR - 120, ACCENT);
+      if (!this.dropForgiven) {
+        // first one's free — happens to everyone
+        this.dropForgiven = true;
+        this.float('BAG DOWN — FIRST ONE FORGIVEN', CART_SX, FLOOR - 120, '#3fb8a8');
+      } else {
+        this.drops++;
+        this.float('BAG DOWN!', CART_SX, FLOOR - 120, ACCENT);
+      }
     }
 
     this.cx = clamp(this.cx + this.v * dt, 60, WORLD - 40);
@@ -259,7 +281,12 @@ export class LuggageScene {
   // ── leg 2: drive the NXT cart to Peregrine Cottages
   updateRun(dt, inp) {
     this.timeLeft -= dt;
-    if (this.timeLeft <= 0) { this.fail('THE GUESTS BEAT YOU TO THE PORCH.', 2); return; }
+    if (this.timeLeft <= 0) {
+      // the guests meet you on the path — deliver what you carry, no time bonus
+      this.lateFinish = true;
+      this.finish();
+      return;
+    }
     this.marmotCd = Math.max(0, this.marmotCd - dt);
 
     const right = inp.down.has('ArrowRight') || inp.down.has('KeyD');
@@ -277,11 +304,16 @@ export class LuggageScene {
         this.game.audio.snare();
         this.shake = 0.2 + this.v2 / 800;
         if (this.v2 > RUN.safeV && this.stack.length > 0) {
-          this.stack.pop();
-          this.drops++;
-          this.game.audio.thump();
-          this.burst(CART_SX - 40, FLOOR - 70, ACCENT, 12);
-          this.float('BAG OVERBOARD!', CART_SX, FLOOR - 130, ACCENT);
+          if (!this.speedWarned) {
+            this.speedWarned = true;
+            this.float('TOO FAST — NEXT BUMP COSTS A BAG', CART_SX, FLOOR - 130, '#3fb8a8');
+          } else {
+            this.stack.pop();
+            this.drops++;
+            this.game.audio.thump();
+            this.burst(CART_SX - 40, FLOOR - 70, ACCENT, 12);
+            this.float('BAG OVERBOARD!', CART_SX, FLOOR - 130, ACCENT);
+          }
         }
       }
     }
@@ -468,6 +500,9 @@ export class LuggageScene {
     drawText(ctx, 'BALANCE', 480, 14, { size: 9, weight: 700, color: C.mustard, align: 'center', spacing: 3 });
     rect(ctx, 360, 28, 240, 10, C.panel);
     frame(ctx, 360, 28, 240, 10, C.edge, 1);
+    if (Math.abs(this.lean) > LEAN_LIMIT * 0.6) {
+      frame(ctx, 357, 25, 246, 16, ACCENT, 2);
+    }
     rect(ctx, 360, 28, 14, 10, ACCENT, 0.6);
     rect(ctx, 586, 28, 14, 10, ACCENT, 0.6);
     const needle = 480 + clamp(this.lean / LEAN_LIMIT, -1, 1) * 112;
@@ -668,7 +703,7 @@ export class LuggageScene {
     ctx.save();
     ctx.translate(W / 2, 190);
     ctx.scale(k, k);
-    drawText(ctx, 'LOBBY CLEARED.', 0, -46, { font: 'display', size: 76, color: C.cream, align: 'center', shadow: { color: ACCENT, dx: 5, dy: 5 } });
+    drawText(ctx, this.rushed ? 'CUTTING IT CLOSE.' : 'LOBBY CLEARED.', 0, -46, { font: 'display', size: 76, color: C.cream, align: 'center', shadow: { color: ACCENT, dx: 5, dy: 5 } });
     ctx.restore();
     drawText(ctx, `${this.stack.length}/8 BAGS — NOW LOAD THE PORSCHE NXT CART`, W / 2, 250, { size: 13, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
     drawText(ctx, 'LEG 2: RUN THE BAGS OUT TO PEREGRINE COTTAGES.', W / 2, 282, { size: 12, weight: 500, color: C.dim, align: 'center' });

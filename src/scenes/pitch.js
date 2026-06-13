@@ -348,6 +348,7 @@ export class PitchScene {
     this.objs = shuffle(this.enc.objections);
     this.objIdx = 0;
     this.ensureMatchableObjection();
+    this.secondWind = false;
     this.playsMade = 0;
     this.beatIdx = 0;
     this.beat = null;
@@ -540,7 +541,23 @@ export class PitchScene {
   finishResolve() {
     this.pending = null;
     if (this.charm >= this.enc.charmTarget) { this.winEncounter(); return; }
-    if (this.turnsLeft <= 0) { this.state = 'lost'; this.t = 0; this.game.audio.lose(); return; }
+    if (this.turnsLeft <= 0) {
+      if (!this.secondWind) {
+        // once per duel: the guest lingers, the pitch isn't dead yet
+        this.secondWind = true;
+        this.turnsLeft = 2;
+        this.beat = null; // speech panel falls back to the objection
+        this.feedback = { text: "THEY'RE STILL LISTENING...", sub: 'second wind — two more turns, make them count', color: C.teal };
+        this.game.audio.bell(1.15);
+        this.state = 'beatResolve';
+        this.t = 0;
+        return;
+      }
+      this.state = 'lost';
+      this.t = 0;
+      this.game.audio.lose();
+      return;
+    }
     if ((this.playsMade === 2 || this.playsMade === 4) && this.beatIdx < this.enc.beats.length) {
       this.beat = this.enc.beats[this.beatIdx++];
       this.beatOrder = shuffle([0, 1]);
@@ -804,7 +821,13 @@ export class PitchScene {
         break;
 
       case 'lost':
-        if ((confirm || inp.pressed.has('KeyR')) && this.t > 0.6) this.startEncounter(this.encIdx);
+        if (inp.pressed.has('KeyR') && this.t > 0.6) {
+          this.startEncounter(this.encIdx);
+        } else if (confirm && this.t > 0.6) {
+          // the career never stalls — move on with nothing banked
+          if (this.encIdx + 1 < ENCOUNTERS.length) this.startEncounter(this.encIdx + 1);
+          else this.finishRun();
+        }
         break;
 
       case 'stars': {
@@ -932,7 +955,7 @@ export class PitchScene {
       wrap(ctx, e.intro, tw, { size: 17, weight: 500 }).slice(0, 3).forEach((ln, i) =>
         drawText(ctx, ln, tx, SPEECH.y + 38 + i * 24, { size: 17, weight: 500, color: C.cream }));
       if (this.blink()) drawText(ctx, 'ENTER → DEAL ME IN', SPEECH.x + SPEECH.w - 18, SPEECH.y + SPEECH.h - 24, { size: 11, weight: 700, color: C.mustard, align: 'right', spacing: 2 });
-    } else if (this.state === 'beat' || this.state === 'beatResolve') {
+    } else if (this.state === 'beat' || (this.state === 'beatResolve' && this.beat)) {
       drawText(ctx, 'THE CONVERSATION TURNS...', tx, SPEECH.y + 16, { size: 10, weight: 700, color: C.dim, spacing: 2 });
       const shown = this.state === 'beat' ? this.beat.prompt.slice(0, Math.floor(this.typed)) : this.beat.prompt;
       wrap(ctx, shown, tw, { size: 17, weight: 500 }).slice(0, 3).forEach((ln, i) =>
@@ -1370,8 +1393,12 @@ export class PitchScene {
     drawText(ctx, '"We\'ll think about it..."', W / 2, 252, { size: 16, weight: 500, italic: true, color: C.cream, align: 'center' });
     drawText(ctx, 'IN THIS BUSINESS, THAT MEANS: TRY AGAIN.', W / 2, 282, { size: 10, weight: 700, color: C.dim, align: 'center', spacing: 2 });
     drawText(ctx, `CHARM REACHED  ${this.charm} / ${this.enc.charmTarget}`, W / 2, 316, { font: 'display', size: 22, color: C.dim, align: 'center' });
-    drawText(ctx, 'TIP — MATCH THE CARD TAG TO THE OBJECTION TAG FOR DOUBLE CHARM', W / 2, 352, { size: 10, weight: 700, color: C.teal, align: 'center', spacing: 1 });
-    if (this.blink()) drawText(ctx, 'ENTER → CLOCK BACK IN', W / 2, 394, { font: 'display', size: 24, color: C.mustard, align: 'center', spacing: 2 });
+    drawText(ctx, 'TIP — MATCH THE CARD TAG TO THE OBJECTION TAG FOR DOUBLE CHARM', W / 2, 348, { size: 10, weight: 700, color: C.teal, align: 'center', spacing: 1 });
+    if (this.blink()) {
+      const next = this.encIdx + 1 < ENCOUNTERS.length ? 'ENTER → NEXT GUEST' : 'ENTER → COLLECT YOUR STARS';
+      drawText(ctx, next, W / 2, 380, { font: 'display', size: 24, color: C.mustard, align: 'center', spacing: 2 });
+    }
+    drawText(ctx, 'R → TAKE ANOTHER RUN AT THIS GUEST', W / 2, 410, { size: 10, weight: 700, color: C.dim, align: 'center', spacing: 2 });
   }
 
   drawStars(ctx) {

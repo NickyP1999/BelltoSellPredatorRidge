@@ -71,7 +71,7 @@ Skips everywhere; an experienced run is ~6 minutes; a fumbling first run must st
 - **Voice:** the player character is warm, competent, never sarcastic to guests.
   "SEE YOU, SALES COWBOY..." is the only fourth-wall wink.
 
-## 7. Graceful failure — REQUIRED for manager-play (currently partial; see backlog P0)
+## 7. Graceful failure — REQUIRED for manager-play (✅ implemented June 12, 2026)
 
 Target behavior — failure reduces score, never repeats content:
 
@@ -137,12 +137,12 @@ never breaks. The real conversation happens off-screen, after the manager finish
 
 ## 14. Prioritized backlog (the polish loop works top-down)
 
-**P0 — Manager-proofing (next, in order):**
-1. Graceful failure: luggage timer → carry-what-you-have ending (no restart).
-2. Graceful failure: valet 3-bump → score-and-advance (retry optional via pause).
-3. Pitch second-wind (+2 turns once per duel, "They're still listening...").
-4. Difficulty soften per §8 numbers.
-5. First-drop/first-bump forgiveness toasts.
+**P0 — Manager-proofing: ✅ ALL SHIPPED June 12, 2026**
+1. ~~Graceful failure: luggage timer → carry-what-you-have ending (no restart).~~ ✅
+2. ~~Graceful failure: valet 3-bump → score-and-advance (retry optional via pause).~~ ✅
+3. ~~Pitch second-wind (+2 turns once per duel, "They're still listening...").~~ ✅
+4. ~~Difficulty soften per §8 numbers.~~ ✅ (lean 0.5→0.6, safeV 190→215, pars 40/40/45)
+5. ~~First-drop/first-bump forgiveness toasts.~~ ✅ (luggage drop, cottage overspeed, valet bump 1 free)
 
 **P1 — Supervisor shareability:**
 6. Finale end-card: career stat line composed for a screenshot (stars, tips, time, zero
