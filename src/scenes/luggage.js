@@ -673,6 +673,76 @@ export class LuggageScene {
     ctx.fillRect(0, 0, W, 146);
     ctx.restore();
 
+    // far Okanagan hills — sine ridges are seamless across the whole run
+    ctx.fillStyle = '#2e2347';
+    ctx.beginPath();
+    ctx.moveTo(-8, 192);
+    for (let sx = -8; sx <= W + 24; sx += 24) {
+      const wx = sx + cam * 0.3;
+      ctx.lineTo(sx, 192 - (34 + 22 * Math.sin(wx * 0.0036) + 9 * Math.sin(wx * 0.0093 + 2.0)));
+    }
+    ctx.lineTo(W + 24, 192);
+    ctx.fill();
+
+    // the lake — the near ridge below is its shoreline
+    rect(ctx, 0, 192, W, 56, '#123438');
+    rect(ctx, 0, 192, W, 1.5, C.teal, 0.3);
+    const sunRef = ctx.createLinearGradient(620, 0, 790, 0);
+    sunRef.addColorStop(0, 'rgba(242,182,58,0)');
+    sunRef.addColorStop(0.5, 'rgba(242,182,58,0.2)');
+    sunRef.addColorStop(1, 'rgba(242,182,58,0)');
+    ctx.fillStyle = sunRef;
+    ctx.fillRect(620, 192, 170, 34);
+    ctx.save();
+    for (let i = 0; i < 9; i++) {
+      const dx = ((i * 287.3 - cam * 0.42) % (W + 60) + W + 60) % (W + 60) - 30;
+      const dy = 195 + ((i * 37.7) % 14);
+      ctx.globalAlpha = 0.08 + 0.2 * (0.5 + 0.5 * Math.sin(this.tAll * (1.2 + (i % 4) * 0.3) + i * 2.1));
+      ctx.fillStyle = i % 3 === 2 ? C.red : C.mustard;
+      ctx.fillRect(dx, dy, 12 + (i % 3) * 7, 1.5);
+    }
+    ctx.restore();
+
+    // near hills
+    ctx.fillStyle = '#1a1330';
+    ctx.beginPath();
+    ctx.moveTo(-8, 248);
+    for (let sx = -8; sx <= W + 24; sx += 24) {
+      const wx = sx + cam * 0.6;
+      ctx.lineTo(sx, 248 - (34 + 12 * Math.sin(wx * 0.0052 + 0.8) + 7 * Math.sin(wx * 0.013 + 4.2)));
+    }
+    ctx.lineTo(W + 24, 248);
+    ctx.fill();
+
+    // cottage lights wake up in the mid-distance on the final stretch
+    const cotFade = clamp((this.cx2 - 2100) / 220, 0, 1);
+    if (cotFade > 0) {
+      ctx.save();
+      for (let i = 0; i < 3; i++) {
+        const sx = 1500 + i * 270 - cam * 0.75;
+        if (sx < -90 || sx > W + 90) continue;
+        const by = 356 - (i % 2) * 10;
+        const glow = ctx.createRadialGradient(sx + 32, by - 16, 4, sx + 32, by - 16, 56);
+        glow.addColorStop(0, 'rgba(242,182,58,0.16)');
+        glow.addColorStop(1, 'rgba(242,182,58,0)');
+        ctx.globalAlpha = cotFade;
+        ctx.fillStyle = glow;
+        ctx.fillRect(sx - 26, by - 74, 116, 92);
+        ctx.fillStyle = '#100d15';
+        ctx.fillRect(sx, by - 34, 64, 34);
+        ctx.beginPath();
+        ctx.moveTo(sx - 7, by - 34);
+        ctx.lineTo(sx + 32, by - 56);
+        ctx.lineTo(sx + 71, by - 34);
+        ctx.fill();
+        ctx.globalAlpha = cotFade * 0.85;
+        ctx.fillStyle = C.mustard;
+        ctx.fillRect(sx + 10, by - 24, 9, 12);
+        ctx.fillRect(sx + 42, by - 24, 9, 12);
+      }
+      ctx.restore();
+    }
+
     // pines along the path
     for (let px = 0; px < RUN.len; px += 170) {
       const sx = px - cam * 0.85; // slight parallax
@@ -764,6 +834,23 @@ export class LuggageScene {
       ctx.fill();
     }
 
+    // fireflies come out past the halfway mark
+    const ffFade = clamp((this.cx2 - 1400) / 220, 0, 1);
+    if (ffFade > 0) {
+      ctx.save();
+      ctx.fillStyle = C.mustard;
+      for (let i = 0; i < 10; i++) {
+        const sp = 9 + (i % 4) * 5;
+        const fx = ((i * 211.7 + this.tAll * sp - cam * 0.92) % (W + 60) + W + 60) % (W + 60) - 30;
+        const fy = 310 + ((i * 53.9) % 96) + Math.sin(this.tAll * (0.9 + (i % 3) * 0.4) + i * 1.9) * 13;
+        ctx.globalAlpha = ffFade * (0.2 + 0.55 * (0.5 + 0.5 * Math.sin(this.tAll * (1.6 + (i % 5) * 0.33) + i * 2.4)));
+        ctx.beginPath();
+        ctx.arc(fx, fy, 1.5 + (i % 3) * 0.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+    }
+
     // the Porsche NXT cart, box on the back, bags visible
     ctx.save();
     ctx.translate(CART_SX, FLOOR - 4 + this.cyOff * 0.12);
@@ -781,10 +868,21 @@ export class LuggageScene {
     ctx.quadraticCurveTo(60, -17, 62, 0);
     ctx.lineTo(40, 0);
     ctx.fill();
+    // rim light — the dusk catches the cart's upper edge
+    ctx.strokeStyle = C.cream;
+    ctx.lineWidth = 1.5;
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.moveTo(-42, -21);
+    ctx.lineTo(39, -21);
+    ctx.quadraticCurveTo(58, -18, 60, -6);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
     // canopy
     rect(ctx, -34, -62, 5, 42, '#0c0a0e');
     rect(ctx, 26, -62, 5, 42, '#0c0a0e');
     rect(ctx, -38, -68, 74, 6, '#0c0a0e');
+    rect(ctx, -38, -69.5, 74, 1.5, C.cream, 0.8);
     // driver
     ctx.fillStyle = '#1a1620';
     ctx.beginPath();

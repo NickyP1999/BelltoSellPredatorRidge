@@ -203,9 +203,13 @@ S2. ~~Lodge lobby art pass: wainscoting + warm sconce pools, framed art with mat
     a proper brass bell cart (match the title-screen silhouette quality).~~ ✅ June 12
     — also dressed the guests (skin/hair/shirt + walk bob) and gave the cart an
     arched crown bar, brass highlights, and rolling wheel spokes.
-S3. Cottage Run art pass: layered parallax hills, Okanagan lake glint, lit cottage
-    windows ahead, fireflies after the half-way mark, rim light on the NXT.
-S4. Jazz loop: synthesized walking bass + brushed ride swing, hub/title only at
-    first (levels keep their SFX focus), ducks under stabs, respects M.
-S5. Shuttle lot ground pass: oil stains, painted arrows, longer light pools.
+S3. ~~Cottage Run art pass: layered parallax hills, Okanagan lake glint, lit cottage
+    windows ahead, fireflies after the half-way mark, rim light on the NXT.~~ ✅ June 12
+S4. ~~Jazz loop: synthesized walking bass + brushed ride swing, hub/title only at
+    first (levels keep their SFX focus), ducks under stabs, respects M.~~ ✅ June 12 —
+    88 BPM Dm lounge vamp (walking triangle bass, brushed ride, whisper pad), lookahead
+    scheduler, ducks 40% under bell/stab/win/lose, mute-instant. NICO: ear-test it;
+    volume knobs documented in audio.js if the bass is too quiet on laptop speakers.
+S5. ~~Shuttle lot ground pass: oil stains, painted arrows, longer light pools.~~ ✅
+    June 12 — plus expansion-joint slab grid and rubber scuffs at the bay mouth.
 S6. Re-audit everything at 1080p; if nothing reads mobile, declare done.

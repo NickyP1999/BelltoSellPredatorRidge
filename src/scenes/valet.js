@@ -27,6 +27,15 @@ const ROUNDS = [
   },
 ];
 
+// Ground dressing — fixed, drawn under everything that moves.
+// Oil stains [x, y, scale, alpha]: years of shuttles idling in the same spots.
+const OIL = [
+  [170, 290, 1, 0.15], [455, 175, 0.8, 0.12], [350, 470, 1.1, 0.16],
+  [620, 462, 0.9, 0.13], [766, 432, 0.8, 0.18], [878, 256, 0.7, 0.14],
+];
+// Painted lane arrows [x, y] — left to right, always forward, toward the bay.
+const ARROWS = [[250, 430], [450, 430], [650, 430]];
+
 function stallRect(round) {
   const w = ROUNDS[round].stallW;
   return { x: 740 - w / 2, y: 118, w, h: 118 };
@@ -292,14 +301,28 @@ export class ValetScene {
 
     // tarmac + building front
     rect(ctx, 0, WALL_Y, W, H - WALL_Y, '#121016');
+    // expansion joints — poured slabs, not flat fill (under the light pools)
+    ctx.fillStyle = 'rgba(0,0,0,0.25)';
+    for (let i = 0; i < 4; i++) ctx.fillRect(190 + i * 190, WALL_Y, 1, H - WALL_Y);
+    ctx.fillRect(0, 300, W, 1);
+    ctx.fillRect(0, 490, W, 1);
+    // oil stains — overlapping blobs at the usual idling spots
+    for (const [sx, sy, sc, sa] of OIL) {
+      ctx.fillStyle = `rgba(2,1,4,${sa})`;
+      ctx.beginPath();
+      ctx.ellipse(sx, sy, 26 * sc, 14 * sc, 0.4, 0, Math.PI * 2);
+      ctx.ellipse(sx + 14 * sc, sy + 7 * sc, 16 * sc, 9 * sc, -0.3, 0, Math.PI * 2);
+      ctx.ellipse(sx - 12 * sc, sy + 5 * sc, 11 * sc, 7 * sc, 0.9, 0, Math.PI * 2);
+      ctx.fill();
+    }
     // warm light pools spilling from the building
     for (let i = 0; i < 4; i++) {
       const lx = 165 + i * 215;
-      const grad = ctx.createRadialGradient(lx, WALL_Y, 8, lx, WALL_Y, 140);
-      grad.addColorStop(0, 'rgba(242,182,58,0.11)');
+      const grad = ctx.createRadialGradient(lx, WALL_Y, 8, lx, WALL_Y, 190);
+      grad.addColorStop(0, 'rgba(242,182,58,0.12)');
       grad.addColorStop(1, 'rgba(242,182,58,0)');
       ctx.fillStyle = grad;
-      ctx.fillRect(lx - 140, WALL_Y, 280, 150);
+      ctx.fillRect(lx - 190, WALL_Y, 380, 190);
     }
     // old tire sweeps
     ctx.strokeStyle = 'rgba(242,233,216,0.045)';
@@ -312,7 +335,35 @@ export class ValetScene {
     ctx.moveTo(80, 430);
     ctx.quadraticCurveTo(420, 380, 740, 244);
     ctx.stroke();
+    // worn painted arrows — the lot only flows one way
+    ctx.fillStyle = C.cream;
+    ctx.globalAlpha = 0.12;
+    for (const [ax, ay] of ARROWS) {
+      ctx.beginPath();
+      ctx.moveTo(ax - 30, ay - 5);
+      ctx.lineTo(ax + 6, ay - 5);
+      ctx.lineTo(ax + 6, ay - 12);
+      ctx.lineTo(ax + 30, ay);
+      ctx.lineTo(ax + 6, ay + 12);
+      ctx.lineTo(ax + 6, ay + 5);
+      ctx.lineTo(ax - 30, ay + 5);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
     for (let i = 0; i < 5; i++) rect(ctx, 60 + i * 200, 330, 90, 3, C.cream, 0.07);
+    // rubber scuffs at the bay mouth — years of the same turn-in
+    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(712, 304, 52, -2.45, -1.75);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(764, 312, 60, -1.95, -1.3);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(742, 288, 34, -2.7, -2.0);
+    ctx.stroke();
     rect(ctx, 0, 0, W, WALL_Y, '#16131a');
     rect(ctx, 0, WALL_Y - 4, W, 4, '#241f2b');
     for (let i = 0; i < 7; i++) {

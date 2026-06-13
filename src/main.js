@@ -53,6 +53,7 @@ const game = {
     if (!this.scene) {
       this.scene = this.scenes[name];
       this.scene.enter(params || {});
+      syncMusic(name);
       return;
     }
     if (this.transition) return; // one wipe at a time
@@ -67,6 +68,12 @@ game.scenes.valet = new ValetScene(game);
 game.scenes.pitch = new PitchScene(game);
 game.scenes.finale = new FinaleScene(game);
 game.audio.muted = !!game.save.data.muted;
+
+// The lounge vamp underscores the title and hub; gameplay levels stay SFX-only.
+function syncMusic(name) {
+  if (name === 'title' || name === 'hub') game.audio.musicOn('lounge');
+  else game.audio.musicOff();
+}
 
 window.addEventListener('keydown', (e) => {
   game.audio.ensure();
@@ -173,6 +180,7 @@ function tick(now) {
       game.scene = game.scenes[tr.to];
       game.scene.enter(tr.params);
       game.save.write(); // persists accumulated playTime without per-frame writes
+      syncMusic(tr.to);
     }
     if (tr.t >= 1) game.transition = null;
   } else if (!game.paused) {
