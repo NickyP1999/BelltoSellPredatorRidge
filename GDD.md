@@ -64,20 +64,25 @@ Skips everywhere; an experienced run is ~6 minutes; a fumbling first run must st
 > Landing–branded water bottles (now in the finale letter). §B–F of
 > `ACCURACY-QUESTIONS.md` still await answers.
 
-- **Facts are sacred.** Pitch cards use only verified Predator Ridge facts (June 2026):
-  RANGE (globally inspired, locally sourced, Okanagan wines, 130+ seat patio), two
-  championship courses + academy + SIM Lounge (Foresight), Ellison Landing (from $1.4M,
-  Woodside borders Ellison Provincial Park, Vale = final Ridge-7th fairway homes, 75+ km
-  trails, Speculation & Vacancy Tax exempt, 1,000+ events/yr, Ritz-Carlton Residences
-  first in Western Canada, 10 min Vernon / ~30 min YLW). **Never invent claims, prices,
-  or discounts.**
+- **Facts are sacred.** Pitch cards use only facts Nico has personally confirmed
+  (full audit June 12, 2026 — see `ACCURACY-QUESTIONS.md`): RANGE (globally inspired,
+  locally sourced, Okanagan wines, 130+ seat patio with valley + Predator-course views),
+  two very different championship courses + academy + practice facility, Pallino's
+  (best pizza in the Okanagan — Nico's words), Commonage Market (quick bites +
+  groceries), Ellison Landing (NEW development, custom homes from $1.4M, Woodside
+  borders Ellison Provincial Park, Vale = final Ridge-7th fairway homes, 75+ km trails,
+  Speculation & Vacancy Tax exempt, **20 min** Vernon / ~30 min YLW, wineries nearby,
+  tennis/pickleball). **Banned (Nico couldn't verify): SIM Lounge/Foresight,
+  Ritz-Carlton, 1,000+ events/yr, skating rink, "pay double in the city" wine pricing.
+  Never invent claims, prices, or discounts.**
 - **Carts are always included with golf rounds.** (Corrected once; never regress.)
 - **No invented place names.** "Portico Loop" was a mistake; real names or generic
   descriptors only ("Lodge Valet").
 - **Humor:** light bellman-life insider jokes (doors, wet floors, the marmot's right of
   way). Never about real coworkers. Never at a guest's expense.
 - **Voice:** the player character is warm, competent, never sarcastic to guests.
-  "SEE YOU, SALES COWBOY..." is the only fourth-wall wink.
+  No fourth-wall winks — "SALES COWBOY" was cut by Nico (June 12); the pitch outro is
+  now the in-fiction "WORD TRAVELS FAST AT THE SALES OFFICE..."
 
 ## 7. Graceful failure — REQUIRED for manager-play (✅ implemented June 12, 2026)
 

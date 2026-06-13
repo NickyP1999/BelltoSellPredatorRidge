@@ -1,6 +1,28 @@
 # Master Accuracy Audit — every real-world claim in the game
 ### Answer by number. "Yes" = accurate as-is. Anything else: give the correction.
-### ✅ Section A answered June 12, 2026 (recorded inline). B–F still open.
+### ✅ ALL SECTIONS ANSWERED June 12, 2026 — corrections implemented same day.
+
+> **§B–F VERDICTS & FIXES (June 12, 2026):**
+> - 9, 12, 16, 19 (black ✅), 20, 22–25, 27, 29, 30, 31 — confirmed as-is.
+> - 10: Peregrine Cottages real; NXT runs bags there; shuttles also run cottages → RANGE.
+> - 11: Commonage Market = quick bite + groceries, NOT a regulars/market-day scene →
+>   beat line "count the first names you learn" replaced with a trails line.
+> - 12 bonus (canon): Pallino's serves **the best pizza in the Okanagan** → now in its card.
+> - 13: RANGE patio views = valley AND the Predator course → added to patio card.
+> - 14: Nico doesn't know the SIM Lounge → card removed, replaced with "I Watch the Sky"
+>   (radar-watching service line, no amenity claims).
+> - 15: the two courses are very different, each fun its own way — existing card already
+>   says exactly this; kept.
+> - 17f (1,000+ events) & 17g (Ritz-Carlton): unverified by Nico → REMOVED. Replaced with
+>   "Founding, Not Buying" (new-development fact) and "Everyday Address" (Commonage).
+> - 17h: it's **TWENTY minutes to Vernon** (not 10); ~30 to Kelowna Intl correct → fixed.
+> - 18: skating rink unverified → removed from "Wine Country Address" card; tennis/
+>   pickleball/fitness stand.
+> - 28a: "you'd pay double in the city" not true → wine card now cites nearby wineries.
+> - 32: "SEE YOU, SALES COWBOY..." cut → outro now "WORD TRAVELS FAST AT THE SALES
+>   OFFICE..." (in-fiction, points at the finale).
+> Standing rule: never reintroduce SIM Lounge, Ritz-Carlton, 1,000-events, skating rink,
+> or price-comparison wine claims.
 
 ## A. Your actual job — ✅ ANSWERED & IMPLEMENTED
 > 1. It's a **GMC Yukon XL**, not a Denali. ✅ fixed everywhere

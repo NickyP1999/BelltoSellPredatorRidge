@@ -1427,7 +1427,7 @@ export class PitchScene {
     drawText(ctx, 'FASTER CLOSES BANK MORE TURNS — 7 BANKED IS A 3-STAR SHIFT', W / 2, 396, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 1 });
 
     if (this.starsShown === this.starsEarned && this.starsEarned > 0) {
-      const line = 'SEE YOU, SALES COWBOY...';
+      const line = 'WORD TRAVELS FAST AT THE SALES OFFICE...';
       const shown = line.slice(0, Math.floor(this.outroTyped));
       drawText(ctx, shown, 900, 480, { size: 14, weight: 500, italic: true, color: C.dim, align: 'right', spacing: 2 });
     }
