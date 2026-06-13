@@ -56,6 +56,11 @@ Skips everywhere; an experienced run is ~6 minutes; a fumbling first run must st
 
 ## 6. Content guardrails (hard rules)
 
+> **⚠ ACCURACY HOLD (June 12, 2026):** There is **no valet service** at Predator Ridge —
+> bellmen strictly shuttle. Level 2's premise is wrong and will be rebuilt once
+> `ACCURACY-QUESTIONS.md` §A is answered. Until then: no new content or polish that
+> deepens the valet fiction; "Valet Precision" naming is provisional.
+
 - **Facts are sacred.** Pitch cards use only verified Predator Ridge facts (June 2026):
   RANGE (globally inspired, locally sourced, Okanagan wines, 130+ seat patio), two
   championship courses + academy + SIM Lounge (Foresight), Ellison Landing (from $1.4M,
