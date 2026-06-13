@@ -85,7 +85,9 @@ export class HubScene {
         this.game.save.data.bookSeen = this.game.save.data.guestBook.length;
         this.game.save.write();
       }
-      this.game.audio.ride();
+      // paper, not brass: the book opens with a page turn
+      this.game.audio.noise(0.14, { vol: 0.05, band: 900 });
+      this.game.audio.noise(0.08, { vol: 0.03, when: 0.07, high: 2400 });
       return;
     }
     if (this.showBook) {
@@ -100,7 +102,7 @@ export class HubScene {
     LEVELS.forEach((l, i) => {
       if (pointIn(p, l.x, l.y, l.w, l.h)) {
         this.game.cursor = 'pointer';
-        if (this.sel !== i) this.sel = i;
+        if (this.sel !== i) { this.sel = i; this.game.audio.ride(); }
       }
     });
     if (this.allDone() && pointIn(p, PROMO.x, PROMO.y, PROMO.w, PROMO.h)) {

@@ -172,9 +172,9 @@ never breaks. The real conversation happens off-screen, after the manager finish
    over).~~ ✅
 
 **P2 — Texture (loop fodder):**
-9. Title-screen ambient: bell-cart silhouette rolling the lower third.
-10. Hub poster hover sounds; Guest Book page-turn sound.
-11. Objection-typing blips duck while hovering cards.
+9. ~~Title-screen ambient: bell-cart silhouette rolling the lower third.~~ ✅ June 12
+10. ~~Hub poster hover sounds; Guest Book page-turn sound.~~ ✅ June 12
+11. ~~Objection-typing blips duck while hovering cards.~~ ✅ June 12
 12. Shuttle Precision: RANGE takeout guest crossing as stop-3 moving obstacle (from original spec).
 
 **Post-promotion wishlist (not for the demo):** Pro Shop (spend tips), Daily Shift +

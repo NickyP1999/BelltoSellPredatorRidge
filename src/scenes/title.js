@@ -24,6 +24,37 @@ export class TitleScene {
     bokehBg(ctx, 'title', { top: '#1c1524', mid: '#120e18', bottom: '#0a080d', glowA: '#f2b63a', glowB: '#d94f30' });
     motes(ctx, this.t);
 
+    // ambient: a brass bell cart rolls the lower third, end to end, forever
+    const cartX = ((this.t * 52) % (960 + 260)) - 130;
+    const cartBob = Math.sin(this.t * 6) * 1.2;
+    ctx.save();
+    ctx.translate(cartX, 488 + cartBob);
+    ctx.fillStyle = '#1d1827';
+    ctx.fillRect(-36, -10, 72, 6);            // deck
+    ctx.fillRect(-34, -44, 4, 36);            // posts
+    ctx.fillRect(30, -44, 4, 36);
+    ctx.beginPath();                          // arched top bar
+    ctx.moveTo(-32, -44);
+    ctx.quadraticCurveTo(0, -60, 32, -44);
+    ctx.quadraticCurveTo(0, -52, -32, -44);
+    ctx.fill();
+    ctx.fillRect(-26, -28, 22, 18);           // luggage stack
+    ctx.fillRect(-2, -34, 18, 24);
+    ctx.fillRect(8, -42, 12, 8);
+    const wa = this.t * 7;
+    [-22, 22].forEach((hx) => {
+      ctx.beginPath();
+      ctx.arc(hx, 0, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(242,233,216,0.16)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(hx + Math.cos(wa) * 4, Math.sin(wa) * 4);
+      ctx.lineTo(hx - Math.cos(wa) * 4, -Math.sin(wa) * 4);
+      ctx.stroke();
+    });
+    ctx.restore();
+
     const k = easeOutExpo(Math.min(1, this.t / 0.8));
     ctx.save();
     ctx.translate(480, 220 + Math.sin(this.t * 1.1) * 3);

@@ -689,7 +689,8 @@ export class PitchScene {
         if (this.typed < len) {
           const before = Math.floor(this.typed);
           this.typed += dt * 68;
-          if (Math.floor(this.typed) > before && Math.floor(this.typed) % 3 === 0) this.game.audio.blip();
+          // duck the typing blips while the player is reading their hand
+          if (Math.floor(this.typed) > before && Math.floor(this.typed) % 3 === 0 && this.spriteAt(p) < 0) this.game.audio.blip();
           if ((anyKey || p.clicked) && this.t > 0.15) this.typed = len;
         } else if (this.t > 0.25) {
           this.state = 'choose';
@@ -793,7 +794,7 @@ export class PitchScene {
         if (this.typed < len) {
           const before = Math.floor(this.typed);
           this.typed += dt * 70;
-          if (Math.floor(this.typed) > before && Math.floor(this.typed) % 3 === 0) this.game.audio.blip();
+          if (Math.floor(this.typed) > before && Math.floor(this.typed) % 3 === 0 && this.spriteAt(p) < 0) this.game.audio.blip();
           if ((anyKey || p.clicked) && this.t > 0.15) this.typed = len;
           break;
         }
