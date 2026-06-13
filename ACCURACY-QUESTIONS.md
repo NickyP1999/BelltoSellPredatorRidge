@@ -23,6 +23,8 @@
 >   OFFICE..." (in-fiction, points at the finale).
 > Standing rule: never reintroduce SIM Lounge, Ritz-Carlton, 1,000-events, skating rink,
 > or price-comparison wine claims.
+> - 20 addendum (canon, June 12): the Porsche NXT's max speed is **24 km/h** — the
+>   Cottage Run speed HUD is calibrated to it (full bar = 24, safe line ≈ 14).
 
 ## A. Your actual job — ✅ ANSWERED & IMPLEMENTED
 > 1. It's a **GMC Yukon XL**, not a Denali. ✅ fixed everywhere

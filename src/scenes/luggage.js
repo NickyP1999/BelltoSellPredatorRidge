@@ -686,13 +686,16 @@ export class LuggageScene {
     drawText(ctx, String(Math.ceil(Math.max(0, this.timeLeft))), 924, 6, { font: 'display', size: 44, color: this.timeLeft < 10 ? ACCENT : C.cream, align: 'right' });
     drawText(ctx, 'GUESTS ARRIVE IN', 924, 52, { size: 9, weight: 700, color: C.faint, align: 'right', spacing: 2 });
 
-    // speed readout — red when bump-unsafe
+    // speed readout — red when bump-unsafe. Real calibration: the NXT tops out
+    // at 24 km/h, so full bar (360 units) = 24 and the safe line sits near 14.
     const unsafe = this.v2 > RUN.safeV;
     drawText(ctx, 'SPEED', 480, 14, { size: 9, weight: 700, color: unsafe ? ACCENT : C.mustard, align: 'center', spacing: 3 });
     rect(ctx, 360, 28, 240, 10, C.panel);
     frame(ctx, 360, 28, 240, 10, C.edge, 1);
     rect(ctx, 362, 30, clamp(this.v2 / 360, 0, 1) * 236, 6, unsafe ? ACCENT : C.teal);
     rect(ctx, 360 + (RUN.safeV / 360) * 240 - 1, 26, 2, 14, C.cream, 0.7);
+    drawText(ctx, `${Math.round(this.v2 / 15)}`, 610, 25, { font: 'display', size: 19, color: unsafe ? ACCENT : C.cream });
+    drawText(ctx, 'KM/H · MAX 24', 610, 44, { size: 7.5, weight: 700, color: C.faint, spacing: 1 });
 
     drawText(ctx, '→ GO · ← BRAKE · SLOW OVER BUMPS — FAST LAUNCHES BAGS', W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
   }

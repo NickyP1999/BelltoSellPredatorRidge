@@ -72,7 +72,8 @@ Skips everywhere; an experienced run is ~6 minutes; a fumbling first run must st
   groceries), Ellison Landing (NEW development, custom homes from $1.4M, Woodside
   borders Ellison Provincial Park, Vale = final Ridge-7th fairway homes, 75+ km trails,
   Speculation & Vacancy Tax exempt, **20 min** Vernon / ~30 min YLW, wineries nearby,
-  tennis/pickleball). **Banned (Nico couldn't verify): SIM Lounge/Foresight,
+  tennis/pickleball), Porsche NXT cart maxes at **24 km/h** (Cottage Run HUD is
+  calibrated to it). **Banned (Nico couldn't verify): SIM Lounge/Foresight,
   Ritz-Carlton, 1,000+ events/yr, skating rink, "pay double in the city" wine pricing.
   Never invent claims, prices, or discounts.**
 - **Carts are always included with golf rounds.** (Corrected once; never regress.)
