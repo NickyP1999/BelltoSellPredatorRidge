@@ -9,8 +9,9 @@ const LETTER = [
   `Dear ${PLAYER_NAME},`,
   'We watched three shifts this week.',
   'You kept a tower of luggage upright through a crowded lobby — grace under pressure, with a smile.',
-  "You backed a guest's Denali XL into a stall with a hand's width to spare — precision and care with what guests value most.",
+  "You backed the Yukon XL into the tightest bay on the property with a hand's width to spare — precision, with guests aboard.",
   'And at the Sales Centre you listened first, matched the need, and never pushed. Marisol booked the patio at sunset. Gord played the Ridge. The Albrights asked for the Woodside floor plans.',
+  "Besides — you've been putting Ellison Landing into guests' hands for years. Two bottles of water, every room.",
   'That is not bell work. That is sales work.',
   'Effective immediately, you are promoted to:',
 ];
@@ -57,9 +58,9 @@ export class FinaleScene {
     }
     // letter paragraphs land with soft type blips
     const reveal = Math.floor((this.t - 0.3) / 0.22);
-    if (reveal > (this.revealSeen || 0) && reveal <= 7) {
+    if (reveal > (this.revealSeen || 0) && reveal <= LETTER.length) {
       this.revealSeen = reveal;
-      if (reveal === 7) this.game.audio.bell(1.1);
+      if (reveal === LETTER.length) this.game.audio.bell(1.1);
       else this.game.audio.blip();
     }
     if (!this.stamped && this.t > 2.4) {

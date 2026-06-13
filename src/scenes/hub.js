@@ -7,7 +7,7 @@ const W = 960, H = 540;
 // Career order, left to right. Each shift unlocks the next.
 const LEVELS = [
   { id: 'luggage', num: '01', name: 'LUGGAGE RUSH', sub: 'THE LODGE', accent: '#d94f30', x: 48, y: 206, w: 272, h: 240, tilt: -0.012, scene: 'luggage' },
-  { id: 'valet', num: '02', name: 'VALET PRECISION', sub: 'LODGE VALET', accent: '#3fb8a8', x: 344, y: 206, w: 272, h: 240, tilt: 0.008, scene: 'valet' },
+  { id: 'valet', num: '02', name: 'SHUTTLE PRECISION', sub: 'RESORT SHUTTLE', accent: '#3fb8a8', x: 344, y: 206, w: 272, h: 240, tilt: 0.008, scene: 'valet' },
   { id: 'pitch', num: '03', name: 'THE PITCH', sub: 'SALES CENTRE', accent: '#f2b63a', x: 640, y: 206, w: 272, h: 240, tilt: -0.008, scene: 'pitch' },
 ];
 

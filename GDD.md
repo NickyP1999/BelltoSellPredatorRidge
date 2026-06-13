@@ -38,7 +38,7 @@ guy at the Sales Centre yet?"**
 | 0:00 | Title slab + ENTER → CLOCK IN | "Oh, this is real." |
 | 0:30 | Hub: three posters, one pulsing CTA | Oriented in seconds |
 | 1:00–2:30 | **Shift 1 — Luggage Rush** (lobby balance + NXT cart cottage run) | Slapstick pressure, first stars |
-| 2:30–5:00 | **Shift 2 — Valet Precision** (Denali XL, 3 rounds) | Skill expressed, dog laughed at |
+| 2:30–5:00 | **Shift 2 — Shuttle Precision** (Yukon XL, 3 stops) | Skill expressed, dog laughed at |
 | 5:00–8:30 | **Shift 3 — The Pitch** (3 card duels) | "This is actual sales technique" |
 | 8:30–9:30 | Finale: NXT cart sunset drive → the letter → PROMOTED stamp | The case lands |
 | 9:30+ | Hub: golden replay state, Guest Book, 9-star chase | Wants another run |
@@ -50,16 +50,19 @@ Skips everywhere; an experienced run is ~6 minutes; a fumbling first run must st
 | Level | Skill on display | The supervisor should think |
 |---|---|---|
 | Luggage Rush | Grace under pressure | "He keeps his head when it's chaos." |
-| Valet Precision | Precision & care with guests' property | "He treats guest property like it matters." |
+| Shuttle Precision | Precision with guests aboard | "He can put the Yukon XL anywhere." |
 | The Pitch | Listen → match → close, honestly | "He already sells the way we want selling done." |
 | The whole game | Initiative, follow-through, polish | "He built this on his own. He's ready." |
 
 ## 6. Content guardrails (hard rules)
 
-> **⚠ ACCURACY HOLD (June 12, 2026):** There is **no valet service** at Predator Ridge —
-> bellmen strictly shuttle. Level 2's premise is wrong and will be rebuilt once
-> `ACCURACY-QUESTIONS.md` §A is answered. Until then: no new content or polish that
-> deepens the valet fiction; "Valet Precision" naming is provisional.
+> **✅ §A ANSWERED (June 12, 2026):** No valet exists — Level 2 rebuilt as **SHUTTLE
+> PRECISION** (backing the resort's **GMC Yukon XL** into tight bays; stops: Lodge →
+> Falcon Point → Sparkling Hill run). Real shuttle destinations: Lodge, Sparkling Hill,
+> Field Glass, Affinity, Falcon Point, Vista, Peregrine Cottages. Never say "Denali",
+> "valet", or "portico". Canon detail: bellmen stock every room with two Ellison
+> Landing–branded water bottles (now in the finale letter). §B–F of
+> `ACCURACY-QUESTIONS.md` still await answers.
 
 - **Facts are sacred.** Pitch cards use only verified Predator Ridge facts (June 2026):
   RANGE (globally inspired, locally sourced, Okanagan wines, 130+ seat patio), two
@@ -159,7 +162,7 @@ never breaks. The real conversation happens off-screen, after the manager finish
 9. Title-screen ambient: bell-cart silhouette rolling the lower third.
 10. Hub poster hover sounds; Guest Book page-turn sound.
 11. Objection-typing blips duck while hovering cards.
-12. Valet: RANGE takeout guest crossing as round-3 moving obstacle (from original spec).
+12. Shuttle Precision: RANGE takeout guest crossing as stop-3 moving obstacle (from original spec).
 
 **Post-promotion wishlist (not for the demo):** Pro Shop (spend tips), Daily Shift +
 streaks, card collection/unlocks, VIP events, ghosts, touch controls, NG+ difficulty.

@@ -122,7 +122,7 @@ export class LuggageScene {
         ? `${this.stack.length}/8 BAGS — THE GUESTS MET YOU ON THE PATH`
         : `${this.stack.length}/8 BAGS DELIVERED · ${this.drops} LOST · LOBBY + COTTAGE RUN`,
       hintLine: 'EVERY BAG DELIVERED AND NOTHING DROPPED IS A 3-STAR SHIFT',
-      nextLabel: 'ENTER → NEXT SHIFT: VALET PRECISION',
+      nextLabel: 'ENTER → NEXT SHIFT: SHUTTLE PRECISION',
       newBest: score > prevBest && prevBest > 0,
     });
     this.state = 'stars';

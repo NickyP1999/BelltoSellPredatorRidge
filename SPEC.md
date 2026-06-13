@@ -1,6 +1,16 @@
 # BELL TO SELL — A Predator Ridge Career Game
 ### Design Spec v3 — June 11, 2026
 
+> **v3.1 ACCURACY CORRECTIONS (June 12, 2026 — from Nico, override everything below):**
+> There is **no valet service** at Predator Ridge; bellmen strictly shuttle. Level 2 is
+> **SHUTTLE PRECISION** — backing the resort's **GMC Yukon XL** (not "Denali") into tight
+> bays at real stops. Real shuttle destinations: the Lodge, Sparkling Hill (Yukon run),
+> Field Glass, Affinity, Falcon Point, Vista, Peregrine Cottages. "Portico" is not a
+> term used at the resort. Job title: Bellman. Target: Sales Assistant Real Estate; the
+> Sales Centre is genuinely close to the Lodge. Authentic detail (canon): bellmen stock
+> every room with **two Ellison Landing–branded water bottles** — referenced in the
+> finale letter. Any "Denali" or "valet" wording below is historical.
+
 Supersedes the draft in `Downloads\predator-ridge-game-spec.md`. Everything in that draft
 still applies unless changed here. Player name: **Nico**.
 

@@ -1,8 +1,20 @@
 # Master Accuracy Audit — every real-world claim in the game
 ### Answer by number. "Yes" = accurate as-is. Anything else: give the correction.
-### Section A blocks the Level 2 rebuild — those answers matter most.
+### ✅ Section A answered June 12, 2026 (recorded inline). B–F still open.
 
-## A. Your actual job (CRITICAL — Level 2 is wrong today)
+## A. Your actual job — ✅ ANSWERED & IMPLEMENTED
+> 1. It's a **GMC Yukon XL**, not a Denali. ✅ fixed everywhere
+> 2. Stops: Lodge, Sparkling Hill (with the Yukon), Field Glass, Affinity, Falcon
+>    Point, Vista, Peregrine Cottages. ✅ Level 2 stops now Lodge → Falcon Point →
+>    Sparkling Hill run
+> 3. The hard skill is **backing into tight spots**; "portico" is not a thing. ✅
+>    Level 2 = SHUTTLE PRECISION, all portico wording purged
+> 4. NXT cart: luggage to cottages + other shuttles. ✅ Cottage Run stands
+> 5. Luggage does go through the Lodge lobby. ✅ Leg 1 stands
+> 6. "Bellman" ✅  7. "Sales Assistant Real Estate" ✅  8. Sales Centre super close ✅
+> BONUS (canon): bellmen stock every room with TWO Ellison Landing–branded water
+> bottles — now cited in the promotion letter as proof he's been carrying the brand
+> for years.
 
 1. Confirmed: there is NO valet service — bellmen strictly shuttle. What does the
    Denali XL actually do? (a) scheduled shuttle loops between fixed stops, (b) on-demand
@@ -55,12 +67,12 @@
 
 ## C. Vehicles
 
-19. The shuttle: exactly a black GMC Yukon **Denali XL**? Resort vehicle, correct?
+19. ~~Superseded by §A:~~ ✅ it's a GMC **Yukon XL** (resort shuttle). Still open: is
+    it black, as drawn?
 20. "Porsche NXT cart" — is that the exact make/model name as you'd say it out loud?
     (It appears on screen as "PORSCHE NXT CART".) Cargo box on the back, correct?
-21. Does any part of the job involve precision REVERSING (backing the Denali into a
-    bay/portico spot)? If yes, Level 2 can keep its parking skeleton with honest
-    framing; if no, it becomes a pure driving/timing game.
+21. ~~Superseded by §A:~~ ✅ backing into tight spots is the real skill — Level 2 keeps
+    its reverse-parking skeleton as SHUTTLE PRECISION.
 
 ## D. Scenario plausibility (the fiction should feel TRUE to coworkers)
 
@@ -101,6 +113,6 @@
 32. Any joke that wouldn't land with your supervisor: the dog auto-brake, the marmot
     right-of-way, "the guest pretended not to see" after three bumps, "SEE YOU, SALES
     COWBOY..."?
-33. The finale letter says you backed "a guest's Denali XL" into a stall — given #1,
-    this is wrong twice over (not a guest car, no valet). What's the truthful
-    one-line version of your driving skill for the letter?
+33. ~~Superseded by §A:~~ ✅ the letter now reads "You backed the Yukon XL into the
+    tightest bay on the property with a hand's width to spare — precision, with guests
+    aboard." Flag if that still rings false.

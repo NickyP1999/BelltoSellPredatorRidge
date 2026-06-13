@@ -7,19 +7,21 @@ const ACCENT = '#3fb8a8';
 const CAR = { len: 92, wid: 42, wheelbase: 58 };
 const WALL_Y = 110;
 
+// Real shuttle stops, tightest bay last. (No valet exists at Predator Ridge —
+// bellmen shuttle; the skill is backing the Yukon XL into tight spots.)
 const ROUNDS = [
   {
-    stallW: 76, par: 40,
+    stallW: 76, par: 40, stop: 'THE LODGE',
     pylons: [[420, 250], [560, 360]],
     rects: [[200, 150, 110, 46, 'cart'], [520, 140, 90, 40, 'cart']],
   },
   {
-    stallW: 64, par: 40,
+    stallW: 64, par: 40, stop: 'FALCON POINT',
     pylons: [[420, 250], [560, 360], [640, 200]],
     rects: [[200, 150, 110, 46, 'cart'], [520, 140, 90, 40, 'cart'], [330, 330, 70, 70, 'planter']],
   },
   {
-    stallW: 54, par: 45,
+    stallW: 54, par: 45, stop: 'SPARKLING HILL RUN',
     pylons: [[420, 250], [560, 360], [640, 200], [500, 470]],
     rects: [[200, 150, 110, 46, 'cart'], [520, 140, 90, 40, 'cart'], [330, 330, 70, 70, 'planter'], [760, 330, 110, 46, 'cart']],
   },
@@ -115,7 +117,7 @@ export class ValetScene {
     sv.data.tips += 10 + Math.round(this.total / 20);
     sv.write();
     this.ceremony.start({
-      label: 'LEVEL 02 — VALET PRECISION',
+      label: 'LEVEL 02 — SHUTTLE PRECISION',
       stars,
       score: this.total,
       best: sv.data.best.valet,
@@ -141,7 +143,7 @@ export class ValetScene {
       if (this.t > 1.6 || (confirm && this.t > 0.3)) {
         this.state = this.game.save.data.seenHowTo.valet ? 'play' : 'howto';
         this.t = 0;
-        if (this.state === 'play') this.say('ROUND 1/3 — REVERSE IN, REAR FIRST');
+        if (this.state === 'play') this.say(`STOP 1/3 — ${ROUNDS[0].stop} · BACK IN, REAR FIRST`);
       }
       return;
     }
@@ -151,7 +153,7 @@ export class ValetScene {
         this.game.save.write();
         this.state = 'play';
         this.t = 0;
-        this.say('ROUND 1/3 — REVERSE IN, REAR FIRST');
+        this.say(`STOP 1/3 — ${ROUNDS[0].stop} · BACK IN, REAR FIRST`);
       }
       return;
     }
@@ -162,7 +164,7 @@ export class ValetScene {
         this.resetRound();
         this.state = 'play';
         this.t = 0;
-        this.say(`ROUND ${this.round + 1}/3 — THE STALL GETS TIGHTER`);
+        this.say(`STOP ${this.round + 1}/3 — ${ROUNDS[this.round].stop} · TIGHTER BAY`);
       }
       return;
     }
@@ -171,7 +173,7 @@ export class ValetScene {
         this.resetRound();
         this.state = 'play';
         this.t = 0;
-        this.say(`ROUND ${this.round + 1}/3 — FRESH START, SAME STALL`);
+        this.say(`STOP ${this.round + 1}/3 — FRESH START, SAME BAY`);
       }
       return;
     }
@@ -221,7 +223,7 @@ export class ValetScene {
     this.x += Math.cos(this.th) * this.v * dt;
     this.y += Math.sin(this.th) * this.v * dt;
 
-    // collisions: bounds, portico wall (except the stall slot), props
+    // collisions: bounds, building wall (except the bay opening), props
     const st = stallRect(this.round);
     let hit = false;
     for (const [cx, cy] of corners(this.x, this.y, this.th)) {
@@ -270,9 +272,9 @@ export class ValetScene {
     if (this.state === 'howto') { this.drawHowTo(ctx); ctx.restore(); return; }
     if (this.state === 'stars') { this.ceremony.draw(ctx); ctx.restore(); return; }
 
-    // tarmac + portico
+    // tarmac + building front
     rect(ctx, 0, WALL_Y, W, H - WALL_Y, '#121016');
-    // warm light pools spilling from the portico
+    // warm light pools spilling from the building
     for (let i = 0; i < 4; i++) {
       const lx = 165 + i * 215;
       const grad = ctx.createRadialGradient(lx, WALL_Y, 8, lx, WALL_Y, 140);
@@ -300,7 +302,7 @@ export class ValetScene {
       rect(ctx, 48 + i * 145, WALL_Y - 10, 18, 6, '#2c2532');
     }
     for (let i = 0; i < 7; i++) sparkle(ctx, 57 + i * 145, 30, 4, C.mustard, { alpha: 0.5 });
-    drawText(ctx, 'THE LODGE — VALET', 480, 78, { font: 'display', size: 20, color: C.cream, align: 'center', spacing: 3, alpha: 0.55 });
+    drawText(ctx, `SHUTTLE STOP — ${ROUNDS[this.round].stop}`, 480, 78, { font: 'display', size: 20, color: C.cream, align: 'center', spacing: 3, alpha: 0.55 });
 
     // the stall
     const st = stallRect(this.round);
@@ -326,7 +328,7 @@ export class ValetScene {
       ctx.stroke();
     });
     ctx.restore();
-    drawText(ctx, 'STALL', st.x + st.w / 2, st.y - 14, { size: 9, weight: 700, color: inside ? ACCENT : C.faint, align: 'center', spacing: 2 });
+    drawText(ctx, 'BAY', st.x + st.w / 2, st.y - 14, { size: 9, weight: 700, color: inside ? ACCENT : C.faint, align: 'center', spacing: 2 });
     if (inside && this.state === 'play') {
       let err = (this.th - Math.PI / 2) * 180 / Math.PI;
       while (err > 180) err -= 360;
@@ -393,7 +395,7 @@ export class ValetScene {
       stamp(ctx, 'DOG! AUTO-BRAKE', this.x, this.y - 50, { size: 14, bg: ACCENT, rot: -0.06 });
     }
 
-    // the Denali XL (grounded by its shadow)
+    // the Yukon XL (grounded by its shadow)
     ctx.save();
     ctx.translate(this.x, this.y);
     ctx.rotate(this.th);
@@ -430,7 +432,7 @@ export class ValetScene {
     ctx.restore();
 
     // ── HUD
-    drawText(ctx, 'LEVEL 02 · VALET PRECISION', 36, 12, { size: 10, weight: 700, color: ACCENT, spacing: 3 });
+    drawText(ctx, 'LEVEL 02 · SHUTTLE PRECISION', 36, 12, { size: 10, weight: 700, color: ACCENT, spacing: 3 });
     drawText(ctx, `SHIFT 2 — ROUND ${this.round + 1}/3`, 36, 24, { font: 'display', size: 30, color: C.cream, spacing: 1 });
     drawText(ctx, 'BUMPS', 36, 60, { size: 9, weight: 700, color: C.faint, spacing: 2 });
     for (let i = 0; i < 3; i++) rect(ctx, 84 + i * 14, 60, 9, 9, i < this.bumps ? C.red : '#241f2b');
@@ -468,7 +470,7 @@ export class ValetScene {
     if (this.state === 'retry') {
       rect(ctx, 0, 0, W, H, C.ink, 0.88);
       drawText(ctx, 'THREE BUMPS.', W / 2, 180, { font: 'display', size: 80, color: C.red, align: 'center', shadow: { color: '#4a1812', dx: 5, dy: 5 } });
-      drawText(ctx, "The Denali XL is longer than it looks. Management is watching the paint.", W / 2, 286, { size: 13, weight: 500, color: C.dim, align: 'center' });
+      drawText(ctx, "The Yukon XL is longer than it looks. Management is watching the paint.", W / 2, 286, { size: 13, weight: 500, color: C.dim, align: 'center' });
       if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, 'ENTER → RESET THE ROUND', W / 2, 340, { font: 'display', size: 24, color: C.mustard, align: 'center', spacing: 2 });
     }
     ctx.restore();
@@ -492,8 +494,8 @@ export class ValetScene {
       ctx.beginPath();
       ctx.rect(0, 380, W, 160);
       ctx.clip();
-      drawText(ctx, 'VALET PRECISION', 64, 396 + (1 - bandT) * 60, { font: 'display', size: 60, color: C.cream, spacing: 2 });
-      drawText(ctx, 'SKILL ON DISPLAY — PRECISION & CARE WITH WHAT GUESTS VALUE', 64, 472 + (1 - bandT) * 60, { size: 12, weight: 700, color: ACCENT, spacing: 3 });
+      drawText(ctx, 'SHUTTLE PRECISION', 64, 396 + (1 - bandT) * 60, { font: 'display', size: 60, color: C.cream, spacing: 2 });
+      drawText(ctx, 'SKILL ON DISPLAY — PRECISION WITH GUESTS ABOARD', 64, 472 + (1 - bandT) * 60, { size: 12, weight: 700, color: ACCENT, spacing: 3 });
       ctx.restore();
     }
     if (t > 0.7) drawText(ctx, 'ENTER → SKIP', 924, 350, { size: 10, weight: 700, color: C.ink, align: 'right', spacing: 2, alpha: 0.65 });
@@ -503,13 +505,13 @@ export class ValetScene {
     rect(ctx, 0, 0, W, H, C.ink);
     rect(ctx, 0, 60, W, 4, ACCENT);
     drawText(ctx, 'LEVEL 02', W / 2, 84, { size: 11, weight: 700, color: ACCENT, align: 'center', spacing: 5 });
-    drawText(ctx, 'HOW TO PLAY — VALET PRECISION', W / 2, 98, { font: 'display', size: 58, color: C.cream, align: 'center', spacing: 2 });
+    drawText(ctx, 'HOW TO PLAY — SHUTTLE PRECISION', W / 2, 98, { font: 'display', size: 58, color: C.cream, align: 'center', spacing: 2 });
     const rules = [
-      "A guest's Denali XL. Three rounds. Stalls get tighter.",
-      'Drive across the loop and REVERSE into the stall, rear first.',
+      'The resort Yukon XL. Three shuttle stops. The bays get tighter.',
+      'Drive across the lot and REVERSE into the bay, rear first.',
       'Straight and centered scores big. Quick scores more.',
-      'Touch anything three times and the round resets.',
-      'The dog owns this loop — the car brakes for it, you lose time.',
+      'Three bumps ends the stop with a rough score — guests notice.',
+      'The dog owns this lot — the shuttle brakes for it, you lose time.',
       'Stop inside the lines, then press SPACE to park.',
     ];
     rules.forEach((ln, i) => drawText(ctx, ln, W / 2, 186 + i * 26, { size: 15, weight: 500, color: i === 5 ? C.mustard : C.cream, align: 'center' }));
