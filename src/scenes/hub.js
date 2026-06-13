@@ -132,7 +132,10 @@ export class HubScene {
 
   draw(ctx) {
     const sv = this.game.save.data;
-    bokehBg(ctx, 'hub', { top: '#1c1524', mid: '#120e18', bottom: '#0a080d', glowA: '#f2b63a', glowB: '#d94f30' });
+    // after the promotion the whole resort map turns golden hour
+    const golden = this.allDone() && sv.finaleSeen;
+    if (golden) bokehBg(ctx, 'hubGold', { top: '#2b1f16', mid: '#181017', bottom: '#0a080d', glowA: '#f2b63a', glowB: '#f2b63a' });
+    else bokehBg(ctx, 'hub', { top: '#1c1524', mid: '#120e18', bottom: '#0a080d', glowA: '#f2b63a', glowB: '#d94f30' });
     motes(ctx, this.t);
 
     // ── Masthead: rotated mustard block with offset red misprint layer
@@ -153,11 +156,13 @@ export class HubScene {
     if (intro > 0.85) drawText(ctx, 'BELL TO SELL', 34, 26, { font: 'display', size: 104, color: C.ink, spacing: 3 });
     ctx.restore();
 
-    drawText(ctx, 'THE CASE FOR A PROMOTION — THREE SHIFTS, LEFT TO RIGHT', 48, 178, { size: 11, weight: 700, color: C.dim, spacing: 4 });
+    drawText(ctx, golden
+      ? 'CAREER COMPLETE — EVERY SHIFT IS YOURS TO REPLAY. CHASE 9 STARS.'
+      : 'THE CASE FOR A PROMOTION — THREE SHIFTS, LEFT TO RIGHT', 48, 178, { size: 11, weight: 700, color: golden ? C.mustard : C.dim, spacing: 4 });
 
     drawText(ctx, `${sv.tips}`, 924, 16, { font: 'display', size: 44, color: C.mustard, align: 'right' });
     drawText(ctx, 'TIPS', 924, 62, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 3 });
-    drawText(ctx, `BELLMAN ${PLAYER_NAME.toUpperCase()}`, 924, 84, { size: 11, weight: 700, color: C.cream, align: 'right', spacing: 2 });
+    drawText(ctx, `${golden ? 'SALES ASSISTANT' : 'BELLMAN'} ${PLAYER_NAME.toUpperCase()}`, 924, 84, { size: 11, weight: 700, color: golden ? C.mustard : C.cream, align: 'right', spacing: 2 });
     if (sv.guestBook.length > (sv.bookSeen || 0)) {
       drawText(ctx, 'G → NEW LINE IN YOUR GUEST BOOK', 924, 106, { size: 10, weight: 700, color: C.teal, align: 'right', spacing: 2, alpha: 0.6 + 0.4 * Math.sin(this.t * 4) });
     }
@@ -246,6 +251,14 @@ export class HubScene {
     }
 
     drawText(ctx, `←/→ CHOOSE   ·   ENTER WALK IN   ·   G GUEST BOOK (${sv.guestBook.length})   ·   F FULLSCREEN   ·   M MUTE   ·   P PAUSE`, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
+
+    if (golden) {
+      // thin gold proscenium — the quiet "you did it" frame around every replay
+      ctx.save();
+      ctx.globalAlpha = 0.4 + 0.12 * Math.sin(this.t * 1.6);
+      frame(ctx, 5, 5, W - 10, H - 10, C.mustard, 2);
+      ctx.restore();
+    }
 
     if (this.showBook) this.drawBook(ctx);
   }

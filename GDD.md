@@ -161,11 +161,15 @@ never breaks. The real conversation happens off-screen, after the manager finish
 4. ~~Difficulty soften per §8 numbers.~~ ✅ (lean 0.5→0.6, safeV 190→215, pars 40/40/45)
 5. ~~First-drop/first-bump forgiveness toasts.~~ ✅ (luggage drop, cottage overspeed, valet bump 1 free)
 
-**P1 — Supervisor shareability:**
-6. Finale end-card: career stat line composed for a screenshot (stars, tips, time, zero
-   real names) — the thing that gets forwarded.
-7. Hub golden state after promotion (career-complete glow, REPLAY framing).
-8. "How to demo" line in README for Nico (60-second setup checklist before handing over).
+**P1 — Supervisor shareability: ✅ ALL SHIPPED June 12, 2026**
+6. ~~Finale end-card: career stat line composed for a screenshot (stars, tips, time, zero
+   real names) — the thing that gets forwarded.~~ ✅ CAREER REPORT screen after the letter
+   (stars/tips/career-time panels, per-shift proof lines, PROMOTED stamp, confidential
+   footer). playTime now tracked in the save.
+7. ~~Hub golden state after promotion (career-complete glow, REPLAY framing).~~ ✅ golden
+   bokeh, gold proscenium frame, "SALES ASSISTANT NICO", career-complete subtitle.
+8. ~~"How to demo" line in README for Nico (60-second setup checklist before handing
+   over).~~ ✅
 
 **P2 — Texture (loop fodder):**
 9. Title-screen ambient: bell-cart silhouette rolling the lower third.

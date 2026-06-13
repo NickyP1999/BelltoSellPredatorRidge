@@ -4,6 +4,7 @@ const DEFAULTS = {
   stars: { luggage: 0, valet: 0, pitch: 0 },
   best: { luggage: 0, valet: 0, pitch: 0 },
   tips: 0,
+  playTime: 0,
   guestBook: [],
   bookSeen: 0,
   seenHowTo: {},

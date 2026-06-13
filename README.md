@@ -20,6 +20,18 @@ Built for a busy shift: every level is short, retries are instant, and a full
 career run fits inside a coffee break. Designed for a 1080p screen — press **F**
 for fullscreen.
 
+## How to demo (60-second checklist before handing it over)
+
+1. Open the game link in Chrome (or run it locally — see below).
+2. Fresh career for a first-time player (recommended): press F12 → Console →
+   `localStorage.removeItem('bell-to-sell-v1')` → refresh the page.
+3. Press **F** for fullscreen.
+4. Click once on the title screen and press Enter — you should hear the bell.
+   (**M** toggles sound if needed.)
+5. Hand over the keyboard and say nothing. The game teaches itself, a fumbled
+   run still finishes inside 10 minutes, and it ends on a Career Report screen
+   composed for a screenshot.
+
 ## Play locally
 
 Requires Node.js 18+.

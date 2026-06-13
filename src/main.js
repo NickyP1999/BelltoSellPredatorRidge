@@ -172,10 +172,12 @@ function tick(now) {
       tr.switched = true;
       game.scene = game.scenes[tr.to];
       game.scene.enter(tr.params);
+      game.save.write(); // persists accumulated playTime without per-frame writes
     }
     if (tr.t >= 1) game.transition = null;
   } else if (!game.paused) {
     game.scene.update(dt);
+    if (game.scene !== game.scenes.title) game.save.data.playTime = (game.save.data.playTime || 0) + dt;
   }
 
   ctx.setTransform(viewScale, 0, 0, viewScale, 0, 0);

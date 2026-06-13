@@ -1,5 +1,5 @@
 import { drawText, wrap, rect, frame, clamp } from '../util.js';
-import { C, easeOutExpo, easeOutBack, halftone, sparkle } from '../theme.js';
+import { C, easeOutExpo, easeOutBack, halftone, panel, sparkle } from '../theme.js';
 import { PLAYER_NAME } from '../config.js';
 
 const W = 960, H = 540;
@@ -56,6 +56,10 @@ export class FinaleScene {
       if (this.t > 3.4 || (confirm && this.t > 0.4)) { this.state = 'letter'; this.t = 0; }
       return;
     }
+    if (this.state === 'card') {
+      if (confirm && this.t > 0.8) this.game.go('hub');
+      return;
+    }
     // letter paragraphs land with soft type blips
     const reveal = Math.floor((this.t - 0.3) / 0.22);
     if (reveal > (this.revealSeen || 0) && reveal <= LETTER.length) {
@@ -71,12 +75,18 @@ export class FinaleScene {
       this.burst(700, 150, C.mustard, 20);
       this.burst(260, 420, C.red, 12);
     }
-    if (confirm && this.t > 3.2) this.game.go('hub');
+    if (confirm && this.t > 3.2) {
+      this.state = 'card';
+      this.t = 0;
+      this.game.audio.stab(1.4, { vol: 0.04 });
+      this.burst(480, 120, C.mustard, 16);
+    }
   }
 
   draw(ctx) {
     rect(ctx, 0, 0, W, H, C.ink);
     if (this.state === 'walk') { this.drawWalk(ctx); return; }
+    if (this.state === 'card') { this.drawCard(ctx); return; }
 
     // ── the letter
     const rise = easeOutExpo(clamp(this.t / 0.5, 0, 1));
@@ -148,8 +158,95 @@ export class FinaleScene {
     if (this.flash > 0) rect(ctx, 0, 0, W, H, C.cream, this.flash * 0.45);
 
     if (this.t > 3.2 && Math.sin(this.tAll * 5.5) > -0.25) {
-      drawText(ctx, 'ENTER → BACK TO THE RESORT', W / 2, 512, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
+      drawText(ctx, 'ENTER → YOUR CAREER REPORT', W / 2, 512, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
     }
+  }
+
+  fmtTime(s) {
+    const m = Math.floor(s / 60), sec = Math.floor(s % 60);
+    return `${m}:${String(sec).padStart(2, '0')}`;
+  }
+
+  // The shareable end-card: the whole career on one screen, composed for a
+  // screenshot a supervisor can forward. No real names beyond the fiction.
+  drawCard(ctx) {
+    const sv = this.game.save;
+    const d = sv.data;
+    ctx.save();
+    ctx.globalAlpha = 0.05;
+    ctx.fillStyle = halftone(ctx);
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+
+    const rise = easeOutExpo(clamp(this.t / 0.6, 0, 1));
+    ctx.save();
+    ctx.globalAlpha = rise;
+    ctx.translate(0, (1 - rise) * 36);
+
+    // small masthead slab, same misprint language as the title
+    ctx.save();
+    ctx.translate(68, 52);
+    ctx.rotate(-0.045);
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 7;
+    rect(ctx, -6, 8, 244, 50, C.red);
+    ctx.shadowColor = 'transparent';
+    rect(ctx, -12, 0, 244, 50, C.mustard);
+    drawText(ctx, 'BELL TO SELL', 110, 4, { font: 'display', size: 38, color: C.ink, align: 'center', spacing: 2 });
+    ctx.restore();
+
+    drawText(ctx, 'CAREER REPORT', 64, 96, { font: 'display', size: 72, color: C.cream, spacing: 3 });
+    rect(ctx, 64, 174, 200, 4, C.red);
+    drawText(ctx, `BELLMAN ${PLAYER_NAME.toUpperCase()}  →  SALES ASSISTANT, REAL ESTATE`, 64, 186, { size: 12, weight: 700, color: C.mustard, spacing: 2 });
+
+    // PROMOTED stamp, top right
+    ctx.save();
+    ctx.translate(796, 110);
+    ctx.rotate(-0.14);
+    ctx.globalAlpha *= 0.92;
+    frame(ctx, -104, -38, 208, 76, C.red, 5);
+    frame(ctx, -95, -29, 190, 58, C.red, 2);
+    drawText(ctx, 'PROMOTED', 0, -23, { font: 'display', size: 46, color: C.red, align: 'center', spacing: 3 });
+    ctx.restore();
+
+    // headline stats
+    const stats = [
+      { label: 'STARS EARNED', value: `${sv.totalStars()}/9`, starsRow: true },
+      { label: 'TIPS EARNED', value: `${d.tips}` },
+      { label: 'CAREER TIME', value: this.fmtTime(d.playTime || 0) },
+    ];
+    stats.forEach((s, i) => {
+      const x = 64 + i * 284, y = 218, w = 264, h = 112;
+      panel(ctx, x, y, w, h, { border: C.edge, borderW: 1 });
+      drawText(ctx, s.label, x + 18, y + 14, { size: 10, weight: 700, color: C.faint, spacing: 3 });
+      drawText(ctx, s.value, x + 18, y + 28, { font: 'display', size: 54, color: C.cream, spacing: 1 });
+      if (s.starsRow) for (let k = 0; k < 9; k++) sparkle(ctx, x + 25 + k * 26, y + 96, 7, k < sv.totalStars() ? C.mustard : '#241f2b');
+    });
+
+    // the case, shift by shift — each row pairs the score with the skill it proves
+    const rows = [
+      ['01', 'LUGGAGE RUSH', 'luggage', 'GRACE UNDER PRESSURE'],
+      ['02', 'SHUTTLE PRECISION', 'valet', 'PRECISION, WITH GUESTS ABOARD'],
+      ['03', 'THE PITCH', 'pitch', 'LISTEN, MATCH, CLOSE — HONESTLY'],
+    ];
+    rows.forEach(([num, name, id, proof], i) => {
+      const y = 362 + i * 38;
+      rect(ctx, 64, y - 8, 832, 32, i % 2 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.055)');
+      drawText(ctx, num, 78, y - 3, { font: 'display', size: 22, color: C.mustard });
+      drawText(ctx, name, 118, y, { size: 12, weight: 700, color: C.cream, spacing: 2 });
+      for (let s = 0; s < 3; s++) sparkle(ctx, 392 + s * 24, y + 7, 8, s < (d.stars[id] || 0) ? C.mustard : '#241f2b');
+      drawText(ctx, `BEST ${d.best[id] || 0}`, 488, y, { size: 11, weight: 700, color: C.dim, spacing: 1 });
+      drawText(ctx, proof, 896, y, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 2 });
+    });
+
+    drawText(ctx, 'CONFIDENTIAL — FOR PREDATOR RIDGE MANAGEMENT ONLY', 64, 498, { size: 9, weight: 700, color: C.mustard, spacing: 2, alpha: 0.85 });
+    if (this.t > 0.8 && Math.sin(this.tAll * 5) > -0.3) {
+      drawText(ctx, 'ENTER → BACK TO THE RESORT', 896, 496, { size: 11, weight: 700, color: C.cream, align: 'right', spacing: 2 });
+    }
+    ctx.restore();
+
+    for (const p of this.particles) sparkle(ctx, p.x, p.y, p.r * (1 - p.life / p.max), p.color, { rot: p.rot, alpha: 1 - p.life / p.max });
   }
 
   drawWalk(ctx) {
