@@ -212,4 +212,9 @@ S4. ~~Jazz loop: synthesized walking bass + brushed ride swing, hub/title only a
     volume knobs documented in audio.js if the bass is too quiet on laptop speakers.
 S5. ~~Shuttle lot ground pass: oil stains, painted arrows, longer light pools.~~ ✅
     June 12 — plus expansion-joint slab grid and rubber scuffs at the bay mouth.
-S6. Re-audit everything at 1080p; if nothing reads mobile, declare done.
+S6. ~~Re-audit everything at 1080p; if nothing reads mobile, declare done.~~ ✅ June 12
+    — six-scene cold audit. Five scenes shipped S-tier; the one weak spot was the
+    Cottage Run *play lane* (gorgeous background, flat foreground). Fixed: tiered
+    pines with dusk rim-light, hazy depth back-row, warm roadside lamp pools, gravel
+    path with ruts/edge stones, grass tufts. **VERDICT: S-tier. No screen reads as a
+    cheap mobile game.** GDD backlog fully exhausted (P0/P1/P2 + S1–S6).

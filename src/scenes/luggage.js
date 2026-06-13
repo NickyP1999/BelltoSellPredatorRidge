@@ -743,22 +743,96 @@ export class LuggageScene {
       ctx.restore();
     }
 
-    // pines along the path
+    // distant back row of pines — smaller, hazier, more parallax, for depth
+    for (let px = 60; px < RUN.len; px += 130) {
+      const sx = px - cam * 0.7;
+      if (sx < -40 || sx > W + 40) continue;
+      const hgt = 54 + ((px / 130) % 3) * 16;
+      ctx.fillStyle = '#14182a';
+      ctx.beginPath();
+      ctx.moveTo(sx, FLOOR - 30);
+      ctx.lineTo(sx + 17, FLOOR - 30 - hgt);
+      ctx.lineTo(sx + 34, FLOOR - 30);
+      ctx.fill();
+    }
+
+    // grass tufts scattering the bank, dusk-lit
+    for (let gx = 30; gx < RUN.len; gx += 95) {
+      const sx = gx - cam * 0.92;
+      if (sx < -10 || sx > W + 10) continue;
+      const gy = FLOOR - 6 - ((gx / 95) % 3) * 3;
+      ctx.strokeStyle = ((gx / 95) % 2) ? '#1c2a16' : '#243516';
+      ctx.lineWidth = 1.5;
+      for (const ga of [-0.4, 0, 0.4]) {
+        ctx.beginPath();
+        ctx.moveTo(sx, gy);
+        ctx.lineTo(sx + ga * 7, gy - 9);
+        ctx.stroke();
+      }
+    }
+
+    // foreground pines — layered tiers, a trunk, and a dusk rim on the sun side
     for (let px = 0; px < RUN.len; px += 170) {
       const sx = px - cam * 0.85; // slight parallax
       if (sx < -60 || sx > W + 60) continue;
       const hgt = 90 + ((px / 170) % 3) * 28;
-      ctx.fillStyle = '#0c1410';
-      ctx.beginPath();
-      ctx.moveTo(sx, FLOOR - 8);
-      ctx.lineTo(sx + 26, FLOOR - 8 - hgt);
-      ctx.lineTo(sx + 52, FLOOR - 8);
-      ctx.fill();
+      const cx = sx + 26;
+      rect(ctx, cx - 3, FLOOR - 14, 6, 10, '#2a1d12'); // trunk
+      // three stacked tiers, widest at the base
+      for (let tier = 0; tier < 3; tier++) {
+        const ty = FLOOR - 8 - tier * (hgt * 0.3);
+        const tw = 26 - tier * 6;
+        const th = hgt * 0.46;
+        ctx.fillStyle = '#0c1410';
+        ctx.beginPath();
+        ctx.moveTo(cx - tw, ty);
+        ctx.lineTo(cx, ty - th);
+        ctx.lineTo(cx + tw, ty);
+        ctx.fill();
+        // dusk light catches the right face of each tier
+        ctx.fillStyle = 'rgba(168,80,58,0.22)';
+        ctx.beginPath();
+        ctx.moveTo(cx, ty - th);
+        ctx.lineTo(cx + tw, ty);
+        ctx.lineTo(cx + tw * 0.4, ty);
+        ctx.fill();
+      }
     }
 
-    rect(ctx, 0, FLOOR, W, 30, '#171410');
+    // the cart path: packed gravel with edge stones, twin tire ruts, a center seam
+    rect(ctx, 0, FLOOR, W, 30, '#1b170f');
+    const grad = ctx.createLinearGradient(0, FLOOR, 0, FLOOR + 30);
+    grad.addColorStop(0, 'rgba(242,182,58,0.05)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.25)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, FLOOR, W, 30);
     rect(ctx, 0, FLOOR, W, 2, C.cream, 0.15);
+    rect(ctx, 0, FLOOR + 9, W, 1, C.cream, 0.05);   // worn tire ruts
+    rect(ctx, 0, FLOOR + 19, W, 1, C.cream, 0.05);
+    // edge stones lining the path, scrolling with the world
+    for (let sx2 = 0; sx2 < RUN.len; sx2 += 46) {
+      const ex = sx2 - cam;
+      if (ex < -8 || ex > W + 8) continue;
+      ctx.fillStyle = (sx2 / 46) % 2 ? '#2a2419' : '#231e15';
+      ctx.beginPath();
+      ctx.ellipse(ex, FLOOR + 2, 5, 2.5, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
     rect(ctx, 0, FLOOR + 30, W, H - FLOOR - 30, '#0d0c0a');
+
+    // roadside lamps casting warm pools onto the path
+    for (let lx = 90; lx < RUN.len; lx += 360) {
+      const sx = lx - cam;
+      if (sx < -30 || sx > W + 30) continue;
+      const pool = ctx.createRadialGradient(sx, FLOOR + 2, 4, sx, FLOOR + 2, 70);
+      pool.addColorStop(0, 'rgba(242,182,58,0.16)');
+      pool.addColorStop(1, 'rgba(242,182,58,0)');
+      ctx.fillStyle = pool;
+      ctx.fillRect(sx - 70, FLOOR - 30, 140, 80);
+      rect(ctx, sx - 1.5, FLOOR - 56, 3, 52, '#241c14'); // post
+      rect(ctx, sx - 5, FLOOR - 60, 10, 6, '#a87f2a');   // lantern head
+      sparkle(ctx, sx, FLOOR - 57, 4, C.mustard, { alpha: 0.85 });
+    }
 
     // bumps
     for (const bx of BUMPS) {
