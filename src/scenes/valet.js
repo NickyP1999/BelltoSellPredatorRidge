@@ -67,7 +67,10 @@ export class ValetScene {
     this.bumps = 0;
     this.elapsed = 0;
     this.dog = { x: 470, y: 320, tx: 470, ty: 320, retarget: 0 };
+    // stop 3 only: a guest crosses the lot with RANGE takeout — right of way, always
+    this.walker = this.round === 2 ? { x: -40, y: 430 } : null;
     this.autoBrakeT = 0;
+    this.brakeLabel = '';
     this.shake = 0;
     this.flash = 0;
     this.splash = null;
@@ -213,9 +216,24 @@ export class ValetScene {
     if (Math.hypot(this.x - dog.x, this.y - dog.y) < 92 && Math.abs(this.v) > 14 && this.autoBrakeT <= 0) {
       this.v = 0;
       this.autoBrakeT = 1.2;
+      this.brakeLabel = 'DOG! AUTO-BRAKE';
       this.elapsed += 2;
       this.game.audio.thump();
       this.say('DOG! AUTO-BRAKE · +2S', ACCENT);
+    }
+
+    const wk = this.walker;
+    if (wk) {
+      wk.x += 36 * dt;
+      if (wk.x > 1000) wk.x = -40;
+      if (Math.hypot(this.x - wk.x, this.y - wk.y) < 84 && Math.abs(this.v) > 14 && this.autoBrakeT <= 0) {
+        this.v = 0;
+        this.autoBrakeT = 1.2;
+        this.brakeLabel = 'TAKEOUT — RIGHT OF WAY';
+        this.elapsed += 2;
+        this.game.audio.thump();
+        this.say('RANGE TAKEOUT COMING THROUGH · +2S', ACCENT);
+      }
     }
 
     const px = this.x, py = this.y, pth = this.th;
@@ -391,8 +409,38 @@ export class ValetScene {
     ctx.lineTo(-19, Math.sin(this.tAll * 10) * 5);
     ctx.stroke();
     ctx.restore();
+    // the RANGE takeout guest, mid-stride
+    if (this.walker) {
+      const wk = this.walker;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.4)';
+      ctx.beginPath();
+      ctx.ellipse(wk.x, wk.y + 17, 10, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.translate(wk.x, wk.y + Math.sin(this.tAll * 8) * 1.5);
+      const ph = Math.sin(this.tAll * 8);
+      ctx.strokeStyle = '#2c2532';
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(-2, 4); ctx.lineTo(-2 + ph * 5, 16); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(2, 4); ctx.lineTo(2 - ph * 5, 16); ctx.stroke();
+      ctx.fillStyle = '#3a5a6e';
+      ctx.beginPath();
+      ctx.roundRect(-7, -12, 14, 18, 5);
+      ctx.fill();
+      ctx.fillStyle = '#c98c5a';
+      ctx.beginPath();
+      ctx.arc(0, -18, 6, 0, Math.PI * 2);
+      ctx.fill();
+      // takeout bag held ahead, RANGE red band on cream
+      ctx.fillStyle = C.cream;
+      ctx.fillRect(10, -8, 11, 13);
+      ctx.fillStyle = C.red;
+      ctx.fillRect(10, -8, 11, 3);
+      ctx.restore();
+    }
+
     if (this.autoBrakeT > 0.4) {
-      stamp(ctx, 'DOG! AUTO-BRAKE', this.x, this.y - 50, { size: 14, bg: ACCENT, rot: -0.06 });
+      stamp(ctx, this.brakeLabel || 'DOG! AUTO-BRAKE', this.x, this.y - 50, { size: 14, bg: ACCENT, rot: -0.06 });
     }
 
     // the Yukon XL (grounded by its shadow)

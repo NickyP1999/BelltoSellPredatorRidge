@@ -175,7 +175,9 @@ never breaks. The real conversation happens off-screen, after the manager finish
 9. ~~Title-screen ambient: bell-cart silhouette rolling the lower third.~~ ✅ June 12
 10. ~~Hub poster hover sounds; Guest Book page-turn sound.~~ ✅ June 12
 11. ~~Objection-typing blips duck while hovering cards.~~ ✅ June 12
-12. Shuttle Precision: RANGE takeout guest crossing as stop-3 moving obstacle (from original spec).
+12. ~~Shuttle Precision: RANGE takeout guest crossing as stop-3 moving obstacle (from
+    original spec).~~ ✅ June 12 — crosses the lane at stop 3, same right-of-way
+    auto-brake rule as the dog (+2s, never a bump).
 
 **Post-promotion wishlist (not for the demo):** Pro Shop (spend tips), Daily Shift +
 streaks, card collection/unlocks, VIP events, ghosts, touch controls, NG+ difficulty.
