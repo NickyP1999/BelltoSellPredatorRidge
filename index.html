@@ -4,14 +4,57 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
   <title>Bell to Sell — A Predator Ridge Career Game</title>
+  <meta name="description" content="A jazz-noir career game: three shifts, one promotion. Help a bellman make his case." />
+  <meta name="theme-color" content="#0e0c10" />
+  <!-- Inline SVG favicon — a brass bell on ink (no binary asset; all art is in-code). -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230e0c10'/%3E%3Cpath d='M32 14a5 5 0 0 1 5 5c8 3 11 10 11 19v6h3a3 3 0 0 1 0 6H13a3 3 0 0 1 0-6h3v-6c0-9 3-16 11-19a5 5 0 0 1 5-5z' fill='%23f2b63a'/%3E%3Ccircle cx='32' cy='54' r='4' fill='%23f2b63a'/%3E%3C/svg%3E" />
+  <!-- Open Graph / link unfurl — so a forwarded link previews cleanly. -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Bell to Sell — A Predator Ridge Career Game" />
+  <meta property="og:description" content="Three shifts, one promotion. A 5–10 minute jazz-noir career game. Best on a laptop or desktop." />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content="Bell to Sell — A Predator Ridge Career Game" />
+  <meta name="twitter:description" content="Three shifts, one promotion. A 5–10 minute jazz-noir career game." />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; background: #0e0c10; overflow: hidden; }
     body { display: flex; align-items: center; justify-content: center; }
     canvas { touch-action: none; }
+    /* Desktop-recommended notice for small touch screens (the shifts need a keyboard). */
+    #desktop-note {
+      display: none; position: fixed; inset: 0; z-index: 10;
+      background: #0e0c10; color: #f2e9d8;
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 32px; box-sizing: border-box; gap: 18px;
+    }
+    #desktop-note .slab {
+      background: #f2b63a; color: #0e0c10; font-weight: 700;
+      padding: 10px 18px; border-radius: 6px; transform: rotate(-2deg);
+      letter-spacing: 2px; font-size: 13px;
+    }
+    #desktop-note h1 { font-size: 22px; margin: 0; letter-spacing: 1px; }
+    #desktop-note p { font-size: 14px; line-height: 1.5; max-width: 320px; margin: 0; color: #b8ad98; }
+    #desktop-note button {
+      background: none; border: 1px solid #3fb8a8; color: #3fb8a8;
+      padding: 10px 20px; border-radius: 6px; font: inherit; font-weight: 700;
+      letter-spacing: 1px; cursor: pointer; margin-top: 6px;
+    }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
+  <div id="desktop-note">
+    <div class="slab">BELL TO SELL</div>
+    <h1>Best on a laptop or desktop</h1>
+    <p>This one's built for a bigger screen and a keyboard — the shifts use arrow keys and Enter. Open the link on a computer for the full experience.</p>
+    <button onclick="document.getElementById('desktop-note').style.display='none'">Continue anyway</button>
+  </div>
+  <script>
+    // Show the notice only on small, touch-first screens; desktops/laptops never see it.
+    if (window.matchMedia('(pointer: coarse)').matches && Math.min(window.innerWidth, window.innerHeight) < 600) {
+      document.getElementById('desktop-note').style.display = 'flex';
+    }
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
