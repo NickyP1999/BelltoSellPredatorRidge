@@ -1,4 +1,4 @@
-import { drawText, rect } from '../util.js';
+import { drawText, rect, measure } from '../util.js';
 import { C, easeOutBack, easeOutExpo, sparkle, stamp } from '../theme.js';
 import { clamp } from '../util.js';
 
@@ -63,8 +63,8 @@ export class Ceremony {
   draw(ctx) {
     const W = 960, H = 540;
     rect(ctx, 0, 0, W, H, C.ink);
-    drawText(ctx, this.label, W / 2, 96, { size: 11, weight: 700, color: C.mustard, align: 'center', spacing: 5 });
-    drawText(ctx, 'SHIFT COMPLETE', W / 2, 110, { font: 'display', size: 80, color: C.cream, align: 'center', spacing: 3 });
+    drawText(ctx, this.label, W / 2, 72, { size: 11, weight: 700, color: C.mustard, align: 'center', spacing: 5 });
+    drawText(ctx, 'SHIFT COMPLETE', W / 2, 104, { font: 'display', size: 80, color: C.cream, align: 'center', spacing: 3 });
 
     for (let i = 0; i < 3; i++) {
       const x = W / 2 - 110 + i * 110;
@@ -78,9 +78,14 @@ export class Ceremony {
     }
 
     const reveal = easeOutExpo(clamp((this.t - 0.25) / 1.0, 0, 1));
-    drawText(ctx, `SCORE  ${Math.round(this.score * reveal)}`, W / 2, 322, { font: 'display', size: 40, color: C.cream, align: 'center', spacing: 2 });
+    const scoreText = `SCORE  ${Math.round(this.score * reveal)}`;
+    drawText(ctx, scoreText, W / 2, 322, { font: 'display', size: 40, color: C.cream, align: 'center', spacing: 2 });
     if (this.newBest && this.t > 1.3) {
-      stamp(ctx, 'NEW BEST!', W / 2 + 178, 338, { size: 15, bg: C.teal, rot: 0.08 });
+      // anchor the stamp to the (final) score's right edge so it tracks any width
+      const finalScore = `SCORE  ${this.score}`;
+      const scoreRight = W / 2 + measure(ctx, finalScore, { font: 'display', size: 40, spacing: 2 }) / 2;
+      const stampHalfW = (measure(ctx, 'NEW BEST!', { font: 'display', size: 15, spacing: 1 }) + 18) / 2;
+      stamp(ctx, 'NEW BEST!', scoreRight + 18 + stampHalfW, 338, { size: 15, bg: C.teal, rot: 0.08 });
     }
     drawText(ctx, `BEST ${this.best}   ·   ${this.statLine}`, W / 2, 374, { size: 12, weight: 700, color: C.faint, align: 'center', spacing: 2 });
     if (this.hintLine) drawText(ctx, this.hintLine, W / 2, 398, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 1 });

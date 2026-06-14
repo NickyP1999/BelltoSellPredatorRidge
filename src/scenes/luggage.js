@@ -17,6 +17,8 @@ const DOORS = [{ x: 700, phase: 0 }, { x: 1520, phase: 0.5 }];
 const WET = { x0: 1150, x1: 1330 };
 const GUESTS = [{ x: 950, phase: 0 }, { x: 1800, phase: 0.6 }];
 const BAG_COLORS = ['#8a5a3a', '#3a5a6e', '#6e3a52', '#52663a', '#5a4a7a', '#7a6a3a', '#3a6e5e', '#9b6fd1'];
+// framed Okanagan prints between the columns — static palette, hoisted out of drawLobby
+const ART = [['#3fb8a8', '#d94f30'], ['#9b6fd1', '#f2b63a'], ['#d94f30', '#3a5a6e'], ['#f2b63a', '#3fb8a8']];
 
 // ── leg 2: the cottage run, on the Porsche NXT cart
 const RUN = { len: 2800, cottage: 2680, time: 30, safeV: 215 };
@@ -52,10 +54,9 @@ export class LuggageScene {
     this.flash = 0;
     this.particles = [];
     this.floaters = [];
-    this.failLine = '';
-    this.failPhase = 1;
     this.rushed = false;
     this.dropForgiven = false;
+    this.leanWarned = false;
   }
 
   resetRun() {
@@ -95,17 +96,12 @@ export class LuggageScene {
     return u < 0.5 ? 340 + u * 2 * 130 : 340 + (1 - u) * 2 * 130;
   }
 
-  fail(line, phase) {
-    this.failLine = line;
-    this.failPhase = phase;
-    this.state = 'fail';
-    this.t = 0;
-    this.game.audio.lose();
-  }
-
   finish() {
     const timeScore = this.lateFinish ? 0 : Math.round(this.timeBank + this.timeLeft) * 6;
-    const score = Math.max(0, this.stack.length * 120 + timeScore - this.drops * 40);
+    // clean-run bonus: every bag delivered with nothing dropped always clears 1000 → 3★,
+    // making the ceremony's "every bag, nothing dropped is a 3-star shift" promise true
+    const cleanBonus = this.stack.length === 8 && this.drops === 0 ? 50 : 0;
+    const score = Math.max(0, this.stack.length * 120 + timeScore - this.drops * 40 + cleanBonus);
     const stars = score >= 1000 ? 3 : score >= 750 ? 2 : 1;
     const sv = this.game.save;
     const prevBest = sv.data.best.luggage;
@@ -157,14 +153,6 @@ export class LuggageScene {
       }
       return;
     }
-    if (this.state === 'fail') {
-      if ((confirm || inp.pressed.has('KeyR')) && this.t > 0.5) {
-        if (this.failPhase === 2) { this.resetRun(); this.state = 'play2'; }
-        else { this.reset(); this.state = 'play'; }
-        this.t = 0;
-      }
-      return;
-    }
     if (this.state === 'handoff') {
       if (this.t > 2.4 || (confirm && this.t > 0.4)) {
         this.resetRun();
@@ -198,7 +186,8 @@ export class LuggageScene {
     let a = 0;
     if (right) a += 300;
     if (left) a -= 380;
-    if (!right && !left) a -= Math.sign(this.v) * 55;
+    // stronger idle friction so coasting to a stop reads as intentional, not a long drift
+    if (!right && !left) a -= Math.sign(this.v) * 95;
     this.v = clamp(this.v + a * dt, 0, 280);
 
     for (const door of DOORS) {
@@ -209,8 +198,10 @@ export class LuggageScene {
       }
     }
 
+    // velocity changes nudge the stack — but a deliberate brake should feel safe.
+    // Only feed the lean from acceleration; skip the kick while the player is braking.
     const dv = this.v - prevV;
-    this.omega -= dv * 0.0045;
+    if (!left) this.omega -= dv * 0.003;
 
     if (this.cx > WET.x0 && this.cx < WET.x1 && this.v > 120) {
       this.omega += Math.sin(this.tAll * 13) * 1.4 * dt;
@@ -251,6 +242,18 @@ export class LuggageScene {
     this.omega += this.lean * k * dt;
     this.omega *= Math.max(0, 1 - 1.1 * dt);
     this.lean += this.omega * dt;
+
+    // reward recovering a dangerous lean: arm on entering the warning band, then a
+    // soft tick + sparkle once the cart settles back under it (fires once per excursion)
+    const mag = Math.abs(this.lean);
+    if (mag > LEAN_LIMIT * 0.6) {
+      this.leanWarned = true;
+    } else if (this.leanWarned) {
+      this.leanWarned = false;
+      this.game.audio.blip();
+      this.burst(CART_SX, FLOOR - 60 - this.stack.length * 22, '#3fb8a8', 6);
+    }
+
     if (Math.abs(this.lean) > LEAN_LIMIT && this.stack.length > 0) {
       this.stack.pop();
       this.lean *= 0.45;
@@ -352,32 +355,27 @@ export class LuggageScene {
     if (this.state === 'howto') { this.drawHowTo(ctx); ctx.restore(); return; }
     if (this.state === 'stars') { this.ceremony.draw(ctx); ctx.restore(); return; }
 
-    if (this.state === 'play2' || (this.state === 'fail' && this.failPhase === 2)) this.drawRun(ctx);
+    if (this.state === 'play2') this.drawRun(ctx);
     else this.drawLobby(ctx);
 
     if (this.state === 'handoff') this.drawHandoff(ctx);
 
-    // fx + fail overlay shared by both legs
+    // fx shared by both legs
     for (const p of this.particles) sparkle(ctx, p.x, p.y, p.r * (1 - p.life / p.max), p.color, { rot: p.rot, alpha: 1 - p.life / p.max });
-    for (const f of this.floaters) drawText(ctx, f.text, f.x, f.y, { font: 'display', size: 18, color: f.color, align: 'center', alpha: 1 - f.t * 0.9 });
+    for (const f of this.floaters) drawText(ctx, f.text, f.x, f.y, { font: 'display', size: 18, color: f.color, align: 'center', alpha: 1 - f.t * 0.9, shadow: { color: C.ink, dx: 1, dy: 1 } });
     if (this.flash > 0) rect(ctx, 0, 0, W, H, C.cream, this.flash * 0.45);
-
-    if (this.state === 'fail') {
-      rect(ctx, 0, 0, W, H, C.ink, 0.88);
-      drawText(ctx, 'MISSED IT.', W / 2, 180, { font: 'display', size: 80, color: ACCENT, align: 'center', shadow: { color: '#4a1812', dx: 5, dy: 5 } });
-      drawText(ctx, this.failLine, W / 2, 286, { size: 13, weight: 500, color: C.dim, align: 'center' });
-      if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, 'ENTER → CLOCK BACK IN', W / 2, 340, { font: 'display', size: 24, color: C.mustard, align: 'center', spacing: 2 });
-    }
     ctx.restore();
   }
 
   drawLobby(ctx) {
     const cam = clamp(this.cx - CART_SX, 0, WORLD - W);
 
-    const wallG = ctx.createLinearGradient(0, 104, 0, FLOOR);
-    wallG.addColorStop(0, '#1a1422');
-    wallG.addColorStop(1, '#0f0c13');
-    ctx.fillStyle = wallG;
+    if (!this._wallG) {
+      this._wallG = ctx.createLinearGradient(0, 104, 0, FLOOR);
+      this._wallG.addColorStop(0, '#1a1422');
+      this._wallG.addColorStop(1, '#0f0c13');
+    }
+    ctx.fillStyle = this._wallG;
     ctx.fillRect(0, 104, W, FLOOR - 104);
 
     // wainscoting with brass trim, panel seams scrolling with the room
@@ -389,8 +387,7 @@ export class LuggageScene {
       rect(ctx, sx, 354, 2, FLOOR - 360, '#15101b');
     }
 
-    // framed Okanagan prints between the columns — cream mats, brass frames
-    const ART = [['#3fb8a8', '#d94f30'], ['#9b6fd1', '#f2b63a'], ['#d94f30', '#3a5a6e'], ['#f2b63a', '#3fb8a8']];
+    // framed Okanagan prints between the columns — cream mats, brass frames (ART is module-scoped)
     let ai = 0;
     for (let wx = 120; wx < WORLD - 200; wx += 480) {
       ai++;
@@ -565,9 +562,18 @@ export class LuggageScene {
 
     const ex = ELEVATOR_X - cam;
     if (ex < W + 160) {
+      // the exit is the goal — it reads as inviting, not sealing. As the cart nears
+      // ELEVATOR_X the doorway opens wider and the mustard frame glows / pulses warmly.
+      const near = clamp(1 - Math.abs(this.cx - ELEVATOR_X) / 520, 0, 1);
+      const pulse = 0.5 + 0.5 * Math.sin(this.tAll * 4);
+      const glow = 1 + near * (0.6 + 0.4 * pulse);
+      const doorW = 22 + near * 30; // wider-open as you approach (was: shrinks with timer)
       rect(ctx, ex - 10, 104, 130, FLOOR - 104, '#1a1620');
-      frame(ctx, ex - 10, 104, 130, FLOOR - 104, C.mustard, 2);
-      const doorW = clamp(this.timeLeft / TIME_LIMIT, 0, 1) * 50 + 6;
+      // warm interior light spilling from the open doorway when the cart is close
+      if (near > 0) {
+        rect(ctx, ex + 55 - doorW - 4, 126, doorW * 2 + 8, FLOOR - 130, C.mustard, 0.10 + near * 0.12);
+      }
+      frame(ctx, ex - 10, 104, 130, FLOOR - 104, C.mustard, 2 * glow);
       rect(ctx, ex + 55 - doorW, 130, doorW, FLOOR - 134, '#0f0d12');
       rect(ctx, ex + 55, 130, doorW, FLOOR - 134, '#0f0d12');
       frame(ctx, ex + 55 - doorW, 130, doorW * 2, FLOOR - 134, C.cream, 1);
@@ -653,13 +659,15 @@ export class LuggageScene {
   drawRun(ctx) {
     const cam = clamp(this.cx2 - CART_SX, 0, RUN.len - W);
 
-    // dusk over the Okanagan — smooth gradient with a sinking sun
-    const sky = ctx.createLinearGradient(0, 0, 0, 172);
-    sky.addColorStop(0, '#241c38');
-    sky.addColorStop(0.52, '#52304a');
-    sky.addColorStop(0.8, '#a8503a');
-    sky.addColorStop(1, '#1a2418');
-    ctx.fillStyle = sky;
+    // dusk over the Okanagan — smooth gradient with a sinking sun (static, cached once)
+    if (!this._skyG) {
+      this._skyG = ctx.createLinearGradient(0, 0, 0, 172);
+      this._skyG.addColorStop(0, '#241c38');
+      this._skyG.addColorStop(0.52, '#52304a');
+      this._skyG.addColorStop(0.8, '#a8503a');
+      this._skyG.addColorStop(1, '#1a2418');
+    }
+    ctx.fillStyle = this._skyG;
     ctx.fillRect(0, 0, W, 172);
     const sun = ctx.createRadialGradient(700, 152, 8, 700, 152, 130);
     sun.addColorStop(0, 'rgba(248,227,176,0.32)');
@@ -801,10 +809,12 @@ export class LuggageScene {
 
     // the cart path: packed gravel with edge stones, twin tire ruts, a center seam
     rect(ctx, 0, FLOOR, W, 30, '#1b170f');
-    const grad = ctx.createLinearGradient(0, FLOOR, 0, FLOOR + 30);
-    grad.addColorStop(0, 'rgba(242,182,58,0.05)');
-    grad.addColorStop(1, 'rgba(0,0,0,0.25)');
-    ctx.fillStyle = grad;
+    if (!this._pathG) {
+      this._pathG = ctx.createLinearGradient(0, FLOOR, 0, FLOOR + 30);
+      this._pathG.addColorStop(0, 'rgba(242,182,58,0.05)');
+      this._pathG.addColorStop(1, 'rgba(0,0,0,0.25)');
+    }
+    ctx.fillStyle = this._pathG;
     ctx.fillRect(0, FLOOR, W, 30);
     rect(ctx, 0, FLOOR, W, 2, C.cream, 0.15);
     rect(ctx, 0, FLOOR + 9, W, 1, C.cream, 0.05);   // worn tire ruts

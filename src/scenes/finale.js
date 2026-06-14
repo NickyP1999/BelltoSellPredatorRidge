@@ -1,5 +1,5 @@
 import { drawText, wrap, rect, frame, clamp } from '../util.js';
-import { C, easeOutExpo, easeOutBack, halftone, panel, sparkle } from '../theme.js';
+import { C, easeOutExpo, easeOutBack, halftone, motes, panel, sparkle } from '../theme.js';
 import { PLAYER_NAME } from '../config.js';
 
 const W = 960, H = 540;
@@ -106,20 +106,36 @@ export class FinaleScene {
     ctx.fillRect(180, 0, 600, 484);
     frame(ctx, 190, 10, 580, 464, '#c9bfa8', 1);
 
-    drawText(ctx, 'PREDATOR RIDGE', 220, 34, { font: 'display', size: 34, color: C.ink, spacing: 3 });
-    drawText(ctx, 'MANAGEMENT OFFICE — INTERNAL CORRESPONDENCE', 220, 72, { size: 9, weight: 700, color: '#6b6357', spacing: 2 });
-    rect(ctx, 220, 88, 160, 3, C.red);
+    drawText(ctx, 'PREDATOR RIDGE', 220, 30, { font: 'display', size: 32, color: C.ink, spacing: 3 });
+    drawText(ctx, 'MANAGEMENT OFFICE — INTERNAL CORRESPONDENCE', 220, 66, { size: 9, weight: 700, color: '#6b6357', spacing: 2 });
+    rect(ctx, 220, 82, 160, 3, C.red);
 
-    let y = 104;
+    // Overflow guard: the signoff must clear the inner frame bottom (474) by
+    // ≥16px on a full reveal, no matter how the body wraps. Pre-measure the
+    // whole composed letter once, then tighten line-height / paragraph gap (and
+    // nudge the body up) until it fits. No paragraph text is ever cut.
+    const BODY_TOP = 98;
+    const FRAME_BOTTOM = 474;
+    const wrapped = LETTER.map((para) => wrap(ctx, para, 520, { size: 12.5, weight: 500 }));
+    const nLines = wrapped.reduce((s, l) => s + l.length, 0);
+    // composed height below body top = body + (gap to title) + title + sub gap +
+    // signoff lines; reserve ~13px past the last signoff baseline for descenders
+    const TAIL = 89; // y+58 signoff start + 18 (2nd line) + 13 descender slack
+    let lh = 17, gap = 5;
+    const fits = (lhT, gapT) => BODY_TOP + nLines * lhT + LETTER.length * gapT + TAIL <= FRAME_BOTTOM - 16;
+    if (!fits(lh, gap)) { lh = 16; }
+    if (!fits(lh, gap)) { gap = 4; }
+    if (!fits(lh, gap)) { lh = 15; }
+
+    let y = BODY_TOP;
     const reveal = Math.floor((this.t - 0.3) / 0.22);
-    LETTER.forEach((para, i) => {
+    wrapped.forEach((lines, i) => {
       if (i > reveal) return;
-      const lines = wrap(ctx, para, 520, { size: 12.5, weight: 500 });
       lines.forEach((ln) => {
         drawText(ctx, ln, 220, y, { size: 12.5, weight: 500, color: C.ink });
-        y += 17;
+        y += lh;
       });
-      y += 5;
+      y += gap;
     });
 
     if (reveal >= LETTER.length) {
@@ -133,32 +149,33 @@ export class FinaleScene {
     }
     ctx.restore();
 
-    // career stats, stacked in the dark margin beside the letter
-    const sv = this.game.save;
-    const statLines = ['CAREER', `${sv.totalStars()}/9 STARS`, `${sv.data.tips} TIPS`, '', 'NEW GAME+', 'REPLAY ANY SHIFT', 'CHASE 9 STARS'];
-    statLines.forEach((ln, i) => {
-      if (ln) drawText(ctx, ln, 24, 40 + i * 16, { size: 9, weight: 700, color: i === 0 || i === 4 ? C.mustard : C.faint, spacing: 2 });
-    });
+    // (the dark-margin career stat-stack lived here; removed so the letter
+    // breathes — the Career Report screen right after is the stats surface)
 
-    // PROMOTED stamp
+    // PROMOTED stamp — seated in the letterhead's top-right whitespace so it
+    // reads as a triumphant seal and never covers a readable word. Half-width
+    // ~96 keeps the right edge (~676+96=772) inside the paper (780).
     if (this.stamped) {
       const k = easeOutBack(clamp((this.t - 2.4) / 0.25, 0, 1));
       ctx.save();
-      ctx.translate(700, 150 + ly - 30);
+      ctx.translate(676, ly + 46);
       ctx.rotate(-0.16);
       ctx.scale(0.7 + 0.3 * k, 0.7 + 0.3 * k);
       ctx.globalAlpha = 0.92;
-      frame(ctx, -118, -42, 236, 84, C.red, 5);
-      frame(ctx, -108, -32, 216, 64, C.red, 2);
-      drawText(ctx, 'PROMOTED', 0, -26, { font: 'display', size: 52, color: C.red, align: 'center', spacing: 4 });
+      frame(ctx, -96, -34, 192, 68, C.red, 5);
+      frame(ctx, -87, -25, 174, 50, C.red, 2);
+      drawText(ctx, 'PROMOTED', 0, -21, { font: 'display', size: 42, color: C.red, align: 'center', spacing: 3 });
       ctx.restore();
     }
 
     for (const p of this.particles) sparkle(ctx, p.x, p.y, p.r * (1 - p.life / p.max), p.color, { rot: p.rot, alpha: 1 - p.life / p.max });
     if (this.flash > 0) rect(ctx, 0, 0, W, H, C.cream, this.flash * 0.45);
 
-    if (this.t > 3.2 && Math.sin(this.tAll * 5.5) > -0.25) {
-      drawText(ctx, 'ENTER → YOUR CAREER REPORT', W / 2, 512, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
+    // the only exit from this screen — smooth eased pulse over a faint ink
+    // underlay so it always reads through the vignette
+    if (this.t > 3.2) {
+      rect(ctx, W / 2 - 150, 490, 300, 24, C.ink, 0.55);
+      drawText(ctx, 'ENTER → YOUR CAREER REPORT', W / 2, 500, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2, alpha: 0.6 + 0.4 * Math.sin(this.t * 4.5) });
     }
   }
 
@@ -194,6 +211,22 @@ export class FinaleScene {
     ctx.shadowColor = 'transparent';
     rect(ctx, -12, 0, 244, 50, C.mustard);
     drawText(ctx, 'BELL TO SELL', 110, 4, { font: 'display', size: 38, color: C.ink, align: 'center', spacing: 2 });
+    // subtle foil sheen sweeping the masthead, same language as the title slab
+    const sweep = (this.tAll % 3.4) / 3.4;
+    if (sweep < 0.3) {
+      const sx = -40 + (sweep / 0.3) * 320;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(-12, 0, 244, 50);
+      ctx.clip();
+      const sg = ctx.createLinearGradient(sx - 34, 0, sx + 34, 0);
+      sg.addColorStop(0, 'rgba(255,255,255,0)');
+      sg.addColorStop(0.5, 'rgba(255,255,255,0.20)');
+      sg.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = sg;
+      ctx.fillRect(sx - 34, 0, 68, 50);
+      ctx.restore();
+    }
     ctx.restore();
 
     drawText(ctx, 'CAREER REPORT', 64, 96, { font: 'display', size: 72, color: C.cream, spacing: 3 });
@@ -217,12 +250,16 @@ export class FinaleScene {
       { label: 'CAREER TIME', value: this.fmtTime(d.playTime || 0) },
     ];
     stats.forEach((s, i) => {
-      const x = 64 + i * 284, y = 218, w = 264, h = 112;
+      const x = 64 + i * 284, y = 210, w = 264, h = 112;
       panel(ctx, x, y, w, h, { border: C.edge, borderW: 1 });
       drawText(ctx, s.label, x + 18, y + 14, { size: 10, weight: 700, color: C.faint, spacing: 3 });
       drawText(ctx, s.value, x + 18, y + 28, { font: 'display', size: 54, color: C.cream, spacing: 1 });
       if (s.starsRow) for (let k = 0; k < 9; k++) sparkle(ctx, x + 25 + k * 26, y + 96, 7, k < sv.totalStars() ? C.mustard : '#241f2b');
     });
+
+    // the verdict — the letter's own closing line, the hero caption of the
+    // report (in-fiction only; pulled verbatim from Management's letter)
+    drawText(ctx, 'That is not bell work. That is sales work.', W / 2, 333, { size: 18, weight: 500, italic: true, color: C.mustard, align: 'center', spacing: 1 });
 
     // the case, shift by shift — each row pairs the score with the skill it proves
     const rows = [
@@ -250,21 +287,71 @@ export class FinaleScene {
   }
 
   drawWalk(ctx) {
-    // sunset over the Okanagan, lodge to the sales office, left to right
-    rect(ctx, 0, 0, W, 200, '#2a1f3d');
-    rect(ctx, 0, 200, W, 90, '#6e3a52');
-    rect(ctx, 0, 290, W, 70, '#d94f30');
-    rect(ctx, 0, 360, W, 40, '#f2b63a');
+    // sunset over the Okanagan, lodge to the sales office, left to right —
+    // blended into a single vertical gradient so the bands read as real sky,
+    // with the same bokeh/mote/glow depth as the rest of the game
+    const sky = ctx.createLinearGradient(0, 0, 0, 400);
+    sky.addColorStop(0, '#241a36');
+    sky.addColorStop(0.42, '#3a2440');
+    sky.addColorStop(0.62, '#6e3a52');
+    sky.addColorStop(0.78, '#b8452f');
+    sky.addColorStop(0.9, '#d94f30');
+    sky.addColorStop(1, '#f2b63a');
+    rect(ctx, 0, 0, W, 400, '#241a36');
+    ctx.fillStyle = sky;
+    ctx.fillRect(0, 0, W, 400);
     ctx.save();
-    ctx.globalAlpha = 0.12;
+    ctx.globalAlpha = 0.1;
     ctx.fillStyle = halftone(ctx);
-    ctx.fillRect(0, 200, W, 200);
+    ctx.fillRect(0, 180, W, 220);
+    ctx.restore();
+    motes(ctx, this.tAll, 14, '#f8e3b0');
+
+    // soft radial glow around the sinking sun, then the disc itself
+    const sunX = 620, sunY = 330;
+    ctx.save();
+    const glow = ctx.createRadialGradient(sunX, sunY, 0, sunX, sunY, 150);
+    glow.addColorStop(0, 'rgba(248,227,176,0.55)');
+    glow.addColorStop(0.4, 'rgba(242,182,58,0.22)');
+    glow.addColorStop(1, 'rgba(242,182,58,0)');
+    ctx.fillStyle = glow;
+    ctx.fillRect(sunX - 150, sunY - 150, 300, 300);
     ctx.restore();
     ctx.fillStyle = '#f8e3b0';
     ctx.beginPath();
-    ctx.arc(620, 330, 38, 0, Math.PI * 2);
+    ctx.arc(sunX, sunY, 38, 0, Math.PI * 2);
     ctx.fill();
+
+    // a faint lake glint band catching the sun, just above the foreground
+    ctx.save();
+    const lake = ctx.createLinearGradient(0, 366, 0, 392);
+    lake.addColorStop(0, 'rgba(248,227,176,0.20)');
+    lake.addColorStop(0.5, 'rgba(242,182,58,0.10)');
+    lake.addColorStop(1, 'rgba(242,182,58,0)');
+    ctx.fillStyle = lake;
+    ctx.fillRect(0, 366, W, 26);
+    ctx.globalAlpha = 0.25;
+    ctx.fillStyle = '#f8e3b0';
+    for (let i = 0; i < 7; i++) {
+      const gx = sunX - 120 + i * 40 + Math.sin(this.tAll * 1.2 + i) * 4;
+      ctx.fillRect(gx, 372 + (i % 2) * 6, 20 + (i % 3) * 8, 2);
+    }
+    ctx.restore();
+
     rect(ctx, 0, 400, W, H - 400, C.ink);
+
+    // a hint of depth: silhouette pines along the ridgeline behind the lodge
+    ctx.save();
+    ctx.fillStyle = '#150f1c';
+    [[300, 300, 26], [340, 286, 32], [382, 308, 22], [690, 296, 30], [724, 312, 24]].forEach(([px, py, ph]) => {
+      ctx.beginPath();
+      ctx.moveTo(px, py - ph);
+      ctx.lineTo(px - ph * 0.5, py);
+      ctx.lineTo(px + ph * 0.5, py);
+      ctx.closePath();
+      ctx.fill();
+    });
+    ctx.restore();
 
     // lodge silhouette (left) and the sales office (right)
     rect(ctx, 40, 280, 220, 120, '#0a0a0c');
@@ -300,6 +387,16 @@ export class FinaleScene {
     ctx.arc(0, -33, 7, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(-7, -27, 14, 13);
+    // cream rim-light catching the sunset, like the Cottage Run — top/front edges
+    ctx.save();
+    ctx.strokeStyle = 'rgba(242,233,216,0.55)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(-30, -51); ctx.lineTo(28, -51);   // canopy roof
+    ctx.moveTo(24, -46); ctx.lineTo(24, -16);     // front canopy post
+    ctx.moveTo(30, -14); ctx.quadraticCurveTo(46, -12, 48, 0); // sloped nose
+    ctx.stroke();
+    ctx.restore();
     // wheels with spinning hubs
     [[-22, 1], [34, 1]].forEach(([hx, hy]) => {
       ctx.beginPath();

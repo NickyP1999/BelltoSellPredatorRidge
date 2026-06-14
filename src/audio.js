@@ -16,7 +16,7 @@
 // beats inside the next 0.25 s at exact audio times, so the loop never
 // drifts or clicks.
 const LOUNGE = {
-  level: 0.04, // musicGain base — an underscore, not a song
+  level: 0.06, // musicGain base — an underscore, not a song (must survive laptop speakers)
   beat: 60 / 88,
   bass: [
     73.42, 82.41, 87.31, 92.50, // Dm7: D2 walks up, F# approaches G
@@ -41,6 +41,7 @@ export class GameAudio {
     this.musicTimer = null;
     this.musicBeat = 0;
     this.musicNext = 0;
+    this._visBound = false;
   }
 
   // SFX check the flag per call, but the music loop is continuous — snap
@@ -71,6 +72,19 @@ export class GameAudio {
       this.musicGain = this.ctx.createGain();
       this.musicGain.gain.value = 0;
       this.musicGain.connect(this.ctx.destination);
+    }
+    if (!this._visBound && typeof document !== 'undefined') {
+      this._visBound = true;
+      document.addEventListener('visibilitychange', () => {
+        // A backgrounded tab throttles the scheduler; coming back, hard-restart
+        // the loop so the vamp realigns in phase. (Mute is preserved: musicOn ->
+        // _musicStart ramps to 0 while muted and _musicTick stays a no-op.)
+        if (document.visibilityState === 'visible' && this.musicReq) {
+          const name = this.musicReq;
+          this.musicOff();
+          this.musicOn(name);
+        }
+      });
     }
     if (this.musicReq && !this.musicTimer) this._musicStart();
   }
@@ -201,6 +215,9 @@ export class GameAudio {
     g.setValueAtTime(Math.min(g.value, LOUNGE.level), t);
     g.linearRampToValueAtTime(LOUNGE.level * 0.4, t + 0.05);
     g.setTargetAtTime(LOUNGE.level, t + 0.35, 0.12);
+    // setTargetAtTime only approaches the target asymptotically; finish with an
+    // explicit linear ramp so the underscore actually returns to full level.
+    g.linearRampToValueAtTime(LOUNGE.level, t + 0.5);
   }
 
   _musicStart() {
@@ -220,7 +237,13 @@ export class GameAudio {
   _musicTick() {
     if (!this.ctx || this._muted) return; // muted pauses scheduling entirely
     const t = this.ctx.currentTime;
-    if (this.musicNext < t) this.musicNext = t + 0.1; // resync after mute/tab throttle
+    if (this.musicNext < t) {
+      // Resync after mute/tab throttle: reset the beat phase too so the vamp
+      // restarts in phase (bar structure realigns instead of the bass landing
+      // on the wrong beats).
+      this.musicNext = t + 0.1;
+      this.musicBeat = 0;
+    }
     while (this.musicNext < t + 0.25) {
       this._musicBeat(this.musicBeat, this.musicNext);
       this.musicBeat = (this.musicBeat + 1) % 32;
@@ -235,7 +258,7 @@ export class GameAudio {
 
     const f = LOUNGE.bass[beat];
     if (f) {
-      const vol = (step === 0 ? 0.8 : 0.66) * (0.92 + Math.random() * 0.16);
+      const vol = (step === 0 ? 0.95 : 0.8) * (0.92 + Math.random() * 0.16);
       this._mTone(f, t0, LOUNGE.beat * 0.9, { type: 'triangle', vol, lowpass: 380 });
     }
 

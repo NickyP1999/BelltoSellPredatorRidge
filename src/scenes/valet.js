@@ -88,6 +88,40 @@ export class ValetScene {
 
   say(text, color = C.mustard) { this.notice = { text, color, t: 1.4 }; }
 
+  // True if the car hull at this pose overlaps any solid: bounds, building
+  // wall (except the bay opening), pylons, or prop rects. Single source of
+  // truth for the axis-separated resolution below.
+  collides(x, y, th) {
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(th)) return true;
+    const st = stallRect(this.round);
+    const pylons = ROUNDS[this.round].pylons;
+    const rects = ROUNDS[this.round].rects;
+    for (const [cx, cy] of corners(x, y, th)) {
+      if (cx < 20 || cx > 940 || cy > 524) return true;
+      // building wall is solid except across the bay opening
+      if (cy < WALL_Y + 6 && !(cx > st.x - 2 && cx < st.x + st.w + 2)) return true;
+      for (const [ox, oy] of pylons) {
+        if (Math.hypot(cx - ox, cy - oy) < 13) return true;
+      }
+      for (const [rx, ry, rw, rh] of rects) {
+        if (cx > rx && cx < rx + rw && cy > ry && cy < ry + rh) return true;
+      }
+    }
+    return false;
+  }
+
+  // Shortest distance from any hull sample point to a hazard. Using the hull
+  // (not the car center) means a long Yukon reversing rear-first triggers off
+  // its rear bumper, not its middle — the dog/guest can't get under the tail.
+  hazardDist(hx, hy) {
+    let best = Infinity;
+    for (const [cx, cy] of corners(this.x, this.y, this.th)) {
+      const d = Math.hypot(cx - hx, cy - hy);
+      if (d < best) best = d;
+    }
+    return best;
+  }
+
   inStall() {
     const st = stallRect(this.round);
     return corners(this.x, this.y, this.th).every(([px, py]) =>
@@ -121,7 +155,7 @@ export class ValetScene {
   }
 
   finish() {
-    const stars = this.total >= 390 ? 3 : this.total >= 260 ? 2 : 1;
+    const stars = this.total >= 330 ? 3 : this.total >= 260 ? 2 : 1;
     const sv = this.game.save;
     const prevBest = sv.data.best.valet;
     sv.data.stars.valet = Math.max(sv.data.stars.valet, stars);
@@ -180,15 +214,6 @@ export class ValetScene {
       }
       return;
     }
-    if (this.state === 'retry') {
-      if ((confirm || inp.pressed.has('KeyR')) && this.t > 0.5) {
-        this.resetRound();
-        this.state = 'play';
-        this.t = 0;
-        this.say(`STOP ${this.round + 1}/3 — FRESH START, SAME BAY`);
-      }
-      return;
-    }
     if (this.state === 'stars') {
       if (this.ceremony.update(dt)) this.game.go('pitch');
       return;
@@ -204,10 +229,22 @@ export class ValetScene {
     const rev = inp.down.has('ArrowDown') || inp.down.has('KeyS');
 
     this.steer = lerp(this.steer, ((right ? 1 : 0) - (left ? 1 : 0)) * 0.52, Math.min(1, dt * 6));
-    if (fwd) this.v += 170 * dt;
-    else if (rev) this.v -= 190 * dt;
-    else this.v -= Math.sign(this.v) * Math.min(Math.abs(this.v), 150 * dt);
+    // Heavy-vehicle feel: forward pulls harder than reverse (backing in is the
+    // skill, so reverse ramps gently), a coast drag, and a stronger engine
+    // brake near zero so the last few px into the bay are feather-able.
+    const throttle = fwd ? 1 : rev ? -1 : 0;
+    if (fwd) this.v += 165 * dt;
+    else if (rev) this.v -= 120 * dt;       // gentler reverse ramp
+    else this.v -= Math.sign(this.v) * Math.min(Math.abs(this.v), 140 * dt); // coast drag
+    // engine brake: extra decel when crawling with no throttle, so you settle
+    // smoothly instead of drifting the last inches
+    if (throttle === 0 && Math.abs(this.v) < 26) {
+      this.v -= Math.sign(this.v) * Math.min(Math.abs(this.v), 95 * dt);
+    }
+    // small throttle dead-zone: a tap nudges off zero rather than lurching
+    if (throttle !== 0 && Math.abs(this.v) < 1.5) this.v = throttle * 1.5;
     this.v = clamp(this.v, -115, 150);
+    if (!Number.isFinite(this.v)) this.v = 0;
 
     // dog wanders the loop; never gets hit — the car auto-brakes
     const dog = this.dog;
@@ -222,51 +259,60 @@ export class ValetScene {
       dog.x += (dog.tx - dog.x) / dd * 42 * dt;
       dog.y += (dog.ty - dog.y) / dd * 42 * dt;
     }
-    if (Math.hypot(this.x - dog.x, this.y - dog.y) < 92 && Math.abs(this.v) > 14 && this.autoBrakeT <= 0) {
+    // Hazards are NEVER a bump: braking always fires on a close hull, the
+    // cooldown only gates the +2s penalty + toast (not the brake itself).
+    if (this.hazardDist(dog.x, dog.y) < 40 && Math.abs(this.v) > 6) {
       this.v = 0;
-      this.autoBrakeT = 1.2;
-      this.brakeLabel = 'DOG! AUTO-BRAKE';
-      this.elapsed += 2;
-      this.game.audio.thump();
-      this.say('DOG! AUTO-BRAKE · +2S', ACCENT);
+      if (this.autoBrakeT <= 0) {
+        this.autoBrakeT = 1.2;
+        this.brakeLabel = 'DOG! AUTO-BRAKE';
+        this.elapsed += 2;
+        this.game.audio.thump();
+        this.say('DOG! AUTO-BRAKE · +2S', ACCENT);
+      }
     }
 
     const wk = this.walker;
     if (wk) {
       wk.x += 36 * dt;
       if (wk.x > 1000) wk.x = -40;
-      if (Math.hypot(this.x - wk.x, this.y - wk.y) < 84 && Math.abs(this.v) > 14 && this.autoBrakeT <= 0) {
+      if (this.hazardDist(wk.x, wk.y) < 40 && Math.abs(this.v) > 6) {
         this.v = 0;
-        this.autoBrakeT = 1.2;
-        this.brakeLabel = 'TAKEOUT — RIGHT OF WAY';
-        this.elapsed += 2;
-        this.game.audio.thump();
-        this.say('RANGE TAKEOUT COMING THROUGH · +2S', ACCENT);
+        if (this.autoBrakeT <= 0) {
+          this.autoBrakeT = 1.2;
+          this.brakeLabel = 'TAKEOUT — RIGHT OF WAY';
+          this.elapsed += 2;
+          this.game.audio.thump();
+          this.say('RANGE TAKEOUT COMING THROUGH · +2S', ACCENT);
+        }
       }
     }
 
+    // ── axis-separated movement so the long Yukon slides along a wall/pylon
+    // instead of dead-stopping. Each stage is committed only if the resulting
+    // hull is clear (tested by collides()), so the car can never tunnel through
+    // an obstacle: a blocked stage is simply not applied. We resolve X, then Y,
+    // then rotation, each against the pose committed by the prior stages.
     const px = this.x, py = this.y, pth = this.th;
-    this.th += (this.v / CAR.wheelbase) * Math.tan(this.steer) * dt;
-    this.x += Math.cos(this.th) * this.v * dt;
-    this.y += Math.sin(this.th) * this.v * dt;
+    const dth = (this.v / CAR.wheelbase) * Math.tan(this.steer) * dt;
+    const dx = Math.cos(this.th) * this.v * dt;
+    const dy = Math.sin(this.th) * this.v * dt;
+    let blocked = false;
 
-    // collisions: bounds, building wall (except the bay opening), props
-    const st = stallRect(this.round);
-    let hit = false;
-    for (const [cx, cy] of corners(this.x, this.y, this.th)) {
-      if (cx < 20 || cx > 940 || cy > 524) { hit = true; break; }
-      if (cy < WALL_Y + 6 && !(cx > st.x - 2 && cx < st.x + st.w + 2)) { hit = true; break; }
-      for (const [ox, oy] of ROUNDS[this.round].pylons) {
-        if (Math.hypot(cx - ox, cy - oy) < 13) { hit = true; break; }
-      }
-      if (hit) break;
-      for (const [rx, ry, rw, rh] of ROUNDS[this.round].rects) {
-        if (cx > rx && cx < rx + rw && cy > ry && cy < ry + rh) { hit = true; break; }
-      }
-      if (hit) break;
+    if (Number.isFinite(dx) && dx !== 0) {
+      if (this.collides(this.x + dx, this.y, this.th)) blocked = true;
+      else this.x += dx;
     }
-    if (hit) {
-      this.x = px; this.y = py; this.th = pth;
+    if (Number.isFinite(dy) && dy !== 0) {
+      if (this.collides(this.x, this.y + dy, this.th)) blocked = true;
+      else this.y += dy;
+    }
+    if (Number.isFinite(dth) && dth !== 0) {
+      if (this.collides(this.x, this.y, this.th + dth)) blocked = true;
+      else this.th += dth;
+    }
+
+    if (blocked) {
       if (Math.abs(this.v) > 18) {
         this.bumps++;
         this.shake = 0.4;
@@ -284,94 +330,116 @@ export class ValetScene {
         }
         this.say(this.bumps === 1 ? 'CLOSE ONE — FIRST BUMP IS FREE' : 'BUMP 2/3 — EASY NOW', this.bumps === 1 ? ACCENT : C.red);
       }
+      // shed speed against whatever we hit; the unblocked axes already moved
       this.v = -this.v * 0.3;
     }
+    if (!Number.isFinite(this.th)) this.th = pth;
+    if (!Number.isFinite(this.x) || !Number.isFinite(this.y)) { this.x = px; this.y = py; }
 
     if (inp.pressed.has('Space')) this.tryPark();
   }
 
+  // Bake the static ground + building-front layer for a round into one
+  // offscreen canvas (3 layouts max; only the stop label differs per round).
+  // Mirrors the bokehBg offscreen pattern in theme.js. Everything that moves
+  // or reacts (stall highlight, props, pylons, dog, walker, car, HUD) still
+  // draws live on top.
+  buildGround(round) {
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const g = c.getContext('2d');
+    // tarmac + building front
+    rect(g, 0, WALL_Y, W, H - WALL_Y, '#121016');
+    // expansion joints — poured slabs, not flat fill (under the light pools)
+    g.fillStyle = 'rgba(0,0,0,0.25)';
+    for (let i = 0; i < 4; i++) g.fillRect(190 + i * 190, WALL_Y, 1, H - WALL_Y);
+    g.fillRect(0, 300, W, 1);
+    g.fillRect(0, 490, W, 1);
+    // oil stains — overlapping blobs at the usual idling spots
+    for (const [sx, sy, sc, sa] of OIL) {
+      g.fillStyle = `rgba(2,1,4,${sa})`;
+      g.beginPath();
+      g.ellipse(sx, sy, 26 * sc, 14 * sc, 0.4, 0, Math.PI * 2);
+      g.ellipse(sx + 14 * sc, sy + 7 * sc, 16 * sc, 9 * sc, -0.3, 0, Math.PI * 2);
+      g.ellipse(sx - 12 * sc, sy + 5 * sc, 11 * sc, 7 * sc, 0.9, 0, Math.PI * 2);
+      g.fill();
+    }
+    // warm light pools spilling from the building
+    for (let i = 0; i < 4; i++) {
+      const lx = 165 + i * 215;
+      const grad = g.createRadialGradient(lx, WALL_Y, 8, lx, WALL_Y, 190);
+      grad.addColorStop(0, 'rgba(242,182,58,0.12)');
+      grad.addColorStop(1, 'rgba(242,182,58,0)');
+      g.fillStyle = grad;
+      g.fillRect(lx - 190, WALL_Y, 380, 190);
+    }
+    // old tire sweeps
+    g.strokeStyle = 'rgba(242,233,216,0.045)';
+    g.lineWidth = 7;
+    g.beginPath();
+    g.moveTo(120, 470);
+    g.quadraticCurveTo(430, 420, 700, 250);
+    g.stroke();
+    g.beginPath();
+    g.moveTo(80, 430);
+    g.quadraticCurveTo(420, 380, 740, 244);
+    g.stroke();
+    // worn painted arrows — the lot only flows one way
+    g.fillStyle = C.cream;
+    g.globalAlpha = 0.12;
+    for (const [ax, ay] of ARROWS) {
+      g.beginPath();
+      g.moveTo(ax - 30, ay - 5);
+      g.lineTo(ax + 6, ay - 5);
+      g.lineTo(ax + 6, ay - 12);
+      g.lineTo(ax + 30, ay);
+      g.lineTo(ax + 6, ay + 12);
+      g.lineTo(ax + 6, ay + 5);
+      g.lineTo(ax - 30, ay + 5);
+      g.closePath();
+      g.fill();
+    }
+    g.globalAlpha = 1;
+    for (let i = 0; i < 5; i++) rect(g, 60 + i * 200, 330, 90, 3, C.cream, 0.07);
+    // rubber scuffs at the bay mouth — years of the same turn-in
+    g.strokeStyle = 'rgba(0,0,0,0.2)';
+    g.lineWidth = 4;
+    g.beginPath();
+    g.arc(712, 304, 52, -2.45, -1.75);
+    g.stroke();
+    g.beginPath();
+    g.arc(764, 312, 60, -1.95, -1.3);
+    g.stroke();
+    g.beginPath();
+    g.arc(742, 288, 34, -2.7, -2.0);
+    g.stroke();
+    rect(g, 0, 0, W, WALL_Y, '#16131a');
+    rect(g, 0, WALL_Y - 4, W, 4, '#241f2b');
+    for (let i = 0; i < 7; i++) {
+      rect(g, 50 + i * 145, 20, 14, WALL_Y - 24, '#241f2b');
+      rect(g, 48 + i * 145, WALL_Y - 10, 18, 6, '#2c2532');
+    }
+    for (let i = 0; i < 7; i++) sparkle(g, 57 + i * 145, 30, 4, C.mustard, { alpha: 0.5 });
+    drawText(g, `SHUTTLE STOP — ${ROUNDS[round].stop}`, 480, 78, { font: 'display', size: 20, color: C.cream, align: 'center', spacing: 3, alpha: 0.55 });
+    return c;
+  }
+
   draw(ctx) {
     ctx.save();
-    if (this.shake > 0) ctx.translate((Math.random() - 0.5) * 10 * this.shake, (Math.random() - 0.5) * 8 * this.shake);
     rect(ctx, 0, 0, W, H, C.ink);
 
     if (this.state === 'intro') { this.drawIntro(ctx); ctx.restore(); return; }
     if (this.state === 'howto') { this.drawHowTo(ctx); ctx.restore(); return; }
     if (this.state === 'stars') { this.ceremony.draw(ctx); ctx.restore(); return; }
 
-    // tarmac + building front
-    rect(ctx, 0, WALL_Y, W, H - WALL_Y, '#121016');
-    // expansion joints — poured slabs, not flat fill (under the light pools)
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    for (let i = 0; i < 4; i++) ctx.fillRect(190 + i * 190, WALL_Y, 1, H - WALL_Y);
-    ctx.fillRect(0, 300, W, 1);
-    ctx.fillRect(0, 490, W, 1);
-    // oil stains — overlapping blobs at the usual idling spots
-    for (const [sx, sy, sc, sa] of OIL) {
-      ctx.fillStyle = `rgba(2,1,4,${sa})`;
-      ctx.beginPath();
-      ctx.ellipse(sx, sy, 26 * sc, 14 * sc, 0.4, 0, Math.PI * 2);
-      ctx.ellipse(sx + 14 * sc, sy + 7 * sc, 16 * sc, 9 * sc, -0.3, 0, Math.PI * 2);
-      ctx.ellipse(sx - 12 * sc, sy + 5 * sc, 11 * sc, 7 * sc, 0.9, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // warm light pools spilling from the building
-    for (let i = 0; i < 4; i++) {
-      const lx = 165 + i * 215;
-      const grad = ctx.createRadialGradient(lx, WALL_Y, 8, lx, WALL_Y, 190);
-      grad.addColorStop(0, 'rgba(242,182,58,0.12)');
-      grad.addColorStop(1, 'rgba(242,182,58,0)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(lx - 190, WALL_Y, 380, 190);
-    }
-    // old tire sweeps
-    ctx.strokeStyle = 'rgba(242,233,216,0.045)';
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.moveTo(120, 470);
-    ctx.quadraticCurveTo(430, 420, 700, 250);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(80, 430);
-    ctx.quadraticCurveTo(420, 380, 740, 244);
-    ctx.stroke();
-    // worn painted arrows — the lot only flows one way
-    ctx.fillStyle = C.cream;
-    ctx.globalAlpha = 0.12;
-    for (const [ax, ay] of ARROWS) {
-      ctx.beginPath();
-      ctx.moveTo(ax - 30, ay - 5);
-      ctx.lineTo(ax + 6, ay - 5);
-      ctx.lineTo(ax + 6, ay - 12);
-      ctx.lineTo(ax + 30, ay);
-      ctx.lineTo(ax + 6, ay + 12);
-      ctx.lineTo(ax + 6, ay + 5);
-      ctx.lineTo(ax - 30, ay + 5);
-      ctx.closePath();
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-    for (let i = 0; i < 5; i++) rect(ctx, 60 + i * 200, 330, 90, 3, C.cream, 0.07);
-    // rubber scuffs at the bay mouth — years of the same turn-in
-    ctx.strokeStyle = 'rgba(0,0,0,0.2)';
-    ctx.lineWidth = 4;
-    ctx.beginPath();
-    ctx.arc(712, 304, 52, -2.45, -1.75);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(764, 312, 60, -1.95, -1.3);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(742, 288, 34, -2.7, -2.0);
-    ctx.stroke();
-    rect(ctx, 0, 0, W, WALL_Y, '#16131a');
-    rect(ctx, 0, WALL_Y - 4, W, 4, '#241f2b');
-    for (let i = 0; i < 7; i++) {
-      rect(ctx, 50 + i * 145, 20, 14, WALL_Y - 24, '#241f2b');
-      rect(ctx, 48 + i * 145, WALL_Y - 10, 18, 6, '#2c2532');
-    }
-    for (let i = 0; i < 7; i++) sparkle(ctx, 57 + i * 145, 30, 4, C.mustard, { alpha: 0.5 });
-    drawText(ctx, `SHUTTLE STOP — ${ROUNDS[this.round].stop}`, 480, 78, { font: 'display', size: 20, color: C.cream, align: 'center', spacing: 3, alpha: 0.55 });
+    // ── world layer: shake is scoped to here so the HUD/timer/splash stay still
+    ctx.save();
+    if (this.shake > 0) ctx.translate((Math.random() - 0.5) * 10 * this.shake, (Math.random() - 0.5) * 8 * this.shake);
+
+    // static ground + building front (baked once per round, blitted each frame)
+    this._groundCache = this._groundCache || {};
+    if (!this._groundCache[this.round]) this._groundCache[this.round] = this.buildGround(this.round);
+    ctx.drawImage(this._groundCache[this.round], 0, 0);
 
     // the stall
     const st = stallRect(this.round);
@@ -434,6 +502,35 @@ export class ValetScene {
       ctx.arc(ox, oy, 9, 0, Math.PI * 2);
       ctx.fill();
       rect(ctx, ox - 9, oy - 2, 18, 4, C.cream, 0.8);
+    }
+
+    // crossing guide — marks the guest's walk-line so it reads as a crosswalk,
+    // not a second dog (stop 3 only). Faint dashed lane + floor chevrons.
+    if (this.walker) {
+      const cy = this.walker.y;
+      ctx.save();
+      ctx.strokeStyle = ACCENT;
+      ctx.globalAlpha = 0.22;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([14, 12]);
+      ctx.beginPath();
+      ctx.moveTo(40, cy - 22);
+      ctx.lineTo(W - 40, cy - 22);
+      ctx.moveTo(40, cy + 22);
+      ctx.lineTo(W - 40, cy + 22);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      // floor chevrons pointing the way the guest crosses
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 3;
+      for (let cx = 150; cx <= 810; cx += 220) {
+        ctx.beginPath();
+        ctx.moveTo(cx - 8, cy - 9);
+        ctx.lineTo(cx + 8, cy);
+        ctx.lineTo(cx - 8, cy + 9);
+        ctx.stroke();
+      }
+      ctx.restore();
     }
 
     // dog (with a little shadow)
@@ -530,6 +627,8 @@ export class ValetScene {
     rect(ctx, -CAR.len / 2 + 2, CAR.wid / 2 - 14, 3, 8, this.v < -2 ? '#ffffff' : C.red);
     ctx.restore();
 
+    ctx.restore(); // end world layer — shake no longer applies below
+
     // ── HUD
     drawText(ctx, 'LEVEL 02 · SHUTTLE PRECISION', 36, 12, { size: 10, weight: 700, color: ACCENT, spacing: 3 });
     drawText(ctx, `SHIFT 2 — ROUND ${this.round + 1}/3`, 36, 24, { font: 'display', size: 30, color: C.cream, spacing: 1 });
@@ -566,12 +665,6 @@ export class ValetScene {
       if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, next, W / 2, 392, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
     }
 
-    if (this.state === 'retry') {
-      rect(ctx, 0, 0, W, H, C.ink, 0.88);
-      drawText(ctx, 'THREE BUMPS.', W / 2, 180, { font: 'display', size: 80, color: C.red, align: 'center', shadow: { color: '#4a1812', dx: 5, dy: 5 } });
-      drawText(ctx, "The Yukon XL is longer than it looks. Management is watching the paint.", W / 2, 286, { size: 13, weight: 500, color: C.dim, align: 'center' });
-      if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, 'ENTER → RESET THE ROUND', W / 2, 340, { font: 'display', size: 24, color: C.mustard, align: 'center', spacing: 2 });
-    }
     ctx.restore();
   }
 
@@ -611,9 +704,10 @@ export class ValetScene {
       'Straight and centered scores big. Quick scores more.',
       'Three bumps ends the stop with a rough score — guests notice.',
       'The dog owns this lot — the shuttle brakes for it, you lose time.',
+      'At the last stop a guest crosses with takeout — right of way, brake for them too.',
       'Stop inside the lines, then press SPACE to park.',
     ];
-    rules.forEach((ln, i) => drawText(ctx, ln, W / 2, 186 + i * 26, { size: 15, weight: 500, color: i === 5 ? C.mustard : C.cream, align: 'center' }));
+    rules.forEach((ln, i) => drawText(ctx, ln, W / 2, 186 + i * 26, { size: 15, weight: 500, color: i === rules.length - 1 ? C.mustard : C.cream, align: 'center' }));
     drawText(ctx, '↑ DRIVE   ·   ↓ REVERSE   ·   ←/→ STEER   ·   SPACE PARK   ·   M MUTE   ·   P PAUSE', W / 2, 380, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 2 });
     if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, 'ENTER → TAKE THE KEYS', W / 2, 430, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 3 });
   }

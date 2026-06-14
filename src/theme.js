@@ -25,11 +25,18 @@ export const easeOutBack = (t) => {
   return 1 + t * t * ((c + 1) * t + c);
 };
 
+// Reduced-motion: main.js reads the media query once at startup and calls
+// setReducedMotion(true) so the heaviest ambient motion (grain, motes) is damped.
+let reducedMotion = false;
+export function setReducedMotion(v) { reducedMotion = !!v; }
+
 let grain = null;
 function makeGrain() {
-  // Fine enough that the grain stays filmic (not blobby) on a 1080p monitor.
+  // Render at full logical resolution (slightly oversized to cover the animated
+  // offset) and draw 1:1, so each grain pixel maps to one logical pixel instead
+  // of being upscaled into blobs on a 1080p monitor.
   const c = document.createElement('canvas');
-  c.width = 480; c.height = 272;
+  c.width = 960 + 64; c.height = 540 + 32;
   const g = c.getContext('2d');
   const img = g.createImageData(c.width, c.height);
   for (let i = 0; i < img.data.length; i += 4) {
@@ -59,10 +66,11 @@ export function filmLook(ctx, W, H, time) {
   if (!grain) grain = makeGrain();
   if (!vig) vig = makeVignette(W, H);
   ctx.save();
-  ctx.globalAlpha = 0.05;
+  ctx.globalAlpha = reducedMotion ? 0.025 : 0.05;
+  // Drawn 1:1 from the oversized texture; the small offset slides the grain.
   const ox = (Math.floor(time * 19) % 4) * 13;
   const oy = (Math.floor(time * 23) % 4) * 9;
-  ctx.drawImage(grain, -ox, -oy, W + 52, H + 36);
+  ctx.drawImage(grain, -ox, -oy);
   ctx.globalAlpha = 1;
   ctx.drawImage(vig, 0, 0);
   ctx.restore();
@@ -174,14 +182,30 @@ export function bokehBg(ctx, key, colors) {
     bg.addColorStop(1, colors.bottom);
     g.fillStyle = bg;
     g.fillRect(0, 0, 960, 540);
+    // Canvas filter blurs the bokeh into soft glow. Some older browsers don't
+    // support it — feature-detect and fall back to larger, lower-alpha blobs so
+    // the bokeh never reads as hard-edged circles.
     g.filter = 'blur(34px)';
+    const filterOK = g.filter === 'blur(34px)';
+    if (!filterOK) g.filter = 'none';
     const seeds = [[140, 110, 75], [430, 70, 55], [820, 140, 95], [640, 60, 45], [80, 430, 70], [900, 470, 85], [300, 510, 55], [560, 480, 65]];
     seeds.forEach(([x, y, r], i) => {
       g.fillStyle = i % 3 === 0 ? colors.glowA : colors.glowB;
-      g.globalAlpha = 0.09 + (i % 3) * 0.035;
-      g.beginPath();
-      g.arc(x, y, r, 0, Math.PI * 2);
-      g.fill();
+      const baseAlpha = 0.09 + (i % 3) * 0.035;
+      if (filterOK) {
+        g.globalAlpha = baseAlpha;
+        g.beginPath();
+        g.arc(x, y, r, 0, Math.PI * 2);
+        g.fill();
+      } else {
+        // No blur: stack a few enlarged, faint rings to fake the soft falloff.
+        for (let k = 0; k < 3; k++) {
+          g.globalAlpha = baseAlpha * (0.5 - k * 0.13);
+          g.beginPath();
+          g.arc(x, y, r * (1.5 + k * 0.6), 0, Math.PI * 2);
+          g.fill();
+        }
+      }
     });
     g.filter = 'none';
     g.globalAlpha = 1;
@@ -200,11 +224,12 @@ export function bokehBg(ctx, key, colors) {
 export function motes(ctx, t, n = 12, color = '#f2e9d8') {
   ctx.save();
   ctx.fillStyle = color;
+  const damp = reducedMotion ? 0.4 : 1; // quiet the drifting motion for reduced-motion
   for (let i = 0; i < n; i++) {
     const sp = 6 + (i % 5) * 3;
     const x = (i * 173.3 + t * sp) % 1000 - 20;
     const y = (i * 97.7 + Math.sin(t * 0.5 + i * 1.7) * 36 + t * 3) % 580 - 20;
-    ctx.globalAlpha = 0.04 + 0.035 * (1 + Math.sin(t * 0.8 + i * 2.1));
+    ctx.globalAlpha = (0.04 + 0.035 * (1 + Math.sin(t * 0.8 + i * 2.1))) * damp;
     ctx.beginPath();
     ctx.arc(x, y, 1.4 + (i % 3) * 0.8, 0, Math.PI * 2);
     ctx.fill();

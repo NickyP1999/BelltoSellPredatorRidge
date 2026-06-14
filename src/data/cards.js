@@ -50,7 +50,7 @@ export const ENCOUNTERS = [
       { name: "Pallino's Tomorrow", tag: 'Time', charm: 10, rarity: 'common',
         line: "RANGE tonight, Pallino's tomorrow — the best pizza in the Okanagan, and zero driving for either." },
       { name: 'Taste of the Valley', tag: 'Skepticism', charm: 10, rarity: 'common',
-        line: 'The menu reads like a map of the valley — try one appetizer and judge me after.' },
+        line: 'The menu reads like a map of the valley — order one appetizer and let the kitchen make the case.' },
       { name: 'Commonage Picnic', tag: 'Price', charm: 10, rarity: 'common',
         line: 'Keep lunch simple at Commonage Market tomorrow, and let tonight be the splurge it deserves.' },
     ],

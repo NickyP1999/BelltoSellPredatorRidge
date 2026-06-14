@@ -6,9 +6,9 @@ const W = 960, H = 540;
 
 // Career order, left to right. Each shift unlocks the next.
 const LEVELS = [
-  { id: 'luggage', num: '01', name: 'LUGGAGE RUSH', sub: 'THE LODGE', accent: '#d94f30', x: 48, y: 206, w: 272, h: 240, tilt: -0.012, scene: 'luggage' },
-  { id: 'valet', num: '02', name: 'SHUTTLE PRECISION', sub: 'RESORT SHUTTLE', accent: '#3fb8a8', x: 344, y: 206, w: 272, h: 240, tilt: 0.008, scene: 'valet' },
-  { id: 'pitch', num: '03', name: 'THE PITCH', sub: 'REAL ESTATE SALES OFFICE', accent: '#f2b63a', x: 640, y: 206, w: 272, h: 240, tilt: -0.008, scene: 'pitch' },
+  { id: 'luggage', num: '01', name: 'LUGGAGE RUSH', sub: 'THE LODGE', accent: '#d94f30', x: 48, y: 180, w: 272, h: 232, tilt: -0.012, scene: 'luggage' },
+  { id: 'valet', num: '02', name: 'SHUTTLE PRECISION', sub: 'RESORT SHUTTLE', accent: '#3fb8a8', x: 344, y: 180, w: 272, h: 232, tilt: 0.008, scene: 'valet' },
+  { id: 'pitch', num: '03', name: 'THE PITCH', sub: 'REAL ESTATE SALES OFFICE', accent: '#f2b63a', x: 640, y: 180, w: 272, h: 232, tilt: -0.008, scene: 'pitch' },
 ];
 
 const PROMO = { x: 48, y: 452, w: 560, h: 40 };
@@ -160,7 +160,7 @@ export class HubScene {
 
     drawText(ctx, golden
       ? 'CAREER COMPLETE — EVERY SHIFT IS YOURS TO REPLAY. CHASE 9 STARS.'
-      : 'THE CASE FOR A PROMOTION — THREE SHIFTS, LEFT TO RIGHT', 48, 178, { size: 11, weight: 700, color: golden ? C.mustard : C.dim, spacing: 4 });
+      : 'THE CASE FOR A PROMOTION — THREE SHIFTS, LEFT TO RIGHT', 48, 164, { size: 11, weight: 700, color: golden ? C.mustard : C.dim, spacing: 4 });
 
     drawText(ctx, `${sv.tips}`, 924, 16, { font: 'display', size: 44, color: C.mustard, align: 'right' });
     drawText(ctx, 'TIPS', 924, 62, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 3 });
@@ -174,10 +174,11 @@ export class HubScene {
       const isSel = i === this.sel;
       const open = this.isOpen(i);
       ctx.save();
-      // posters breathe a little, like a wall of prints in a draft
-      const bob = Math.sin(this.t * 1.3 + i * 1.9) * 2.5;
+      // posters breathe a little, like a wall of prints in a draft — but only
+      // the selected one carries real motion, so the eye follows the CTA
+      const bob = Math.sin(this.t * 1.3 + i * 1.9) * (isSel ? 2.5 : 1.25);
       ctx.translate(l.x + l.w / 2, l.y + l.h / 2 - (isSel ? 8 : 0) + bob);
-      ctx.rotate(l.tilt + Math.sin(this.t * 0.9 + i * 2.3) * 0.004);
+      ctx.rotate(l.tilt + Math.sin(this.t * 0.9 + i * 2.3) * (isSel ? 0.004 : 0.002));
       if (isSel) ctx.scale(1.03, 1.03);
       const x = -l.w / 2, y = -l.h / 2;
       panel(ctx, x, y, l.w, l.h, { border: isSel ? C.mustard : C.edge, borderW: isSel ? 2 : 1, glow: isSel ? C.mustard : null });
@@ -240,23 +241,26 @@ export class HubScene {
     }
     drawText(ctx, `${total}/9 — STARS ARE YOUR HIGH-SCORE CHASE`, 690, 478, { size: 9, weight: 700, color: C.faint, spacing: 1 });
 
+    // one pulsing CTA per decision point: when the PROMO banner is the live
+    // choice, IT is the CTA — suppress the bottom ribbon so only one pulses
+    const bannerIsCTA = this.allDone() && this.sel === LEVELS.length;
     if (this.toast) {
-      stamp(ctx, this.toast.text, W / 2, 430, { size: 18, bg: C.mustard, rot: -0.04 });
-    } else if (this.sel < LEVELS.length) {
-      // one clear next action, always — on its own ink ribbon so it reads as a
-      // deliberate marquee instead of floating over the poster row
+      stamp(ctx, this.toast.text, W / 2, 434, { size: 18, bg: C.mustard, rot: -0.04 });
+    } else if (!bannerIsCTA && this.sel < LEVELS.length) {
+      // one clear next action, always — on its own ink ribbon below the poster
+      // row so it reads as a deliberate marquee, never crossing a poster
       const l = LEVELS[this.sel];
       const open = this.isOpen(this.sel);
       const label = open
         ? `ENTER → ${sv.stars[l.id] > 0 ? 'REPLAY' : 'CLOCK IN'}: ${l.name}`
         : `FINISH SHIFT ${LEVELS[this.sel - 1].num} TO UNLOCK ${l.name}`;
-      rect(ctx, 0, 412, W, 34, C.ink, 0.78);
-      rect(ctx, 0, 412, W, 1, C.edge, 0.6);
-      rect(ctx, 0, 445, W, 1, C.edge, 0.6);
-      drawText(ctx, label, W / 2, 419, { font: 'display', size: 21, color: open ? C.mustard : C.faint, align: 'center', spacing: 2, alpha: 0.65 + 0.35 * Math.sin(this.t * 4.5) });
+      rect(ctx, 0, 418, W, 32, C.ink, 0.78);
+      rect(ctx, 0, 418, W, 1, C.edge, 0.6);
+      rect(ctx, 0, 449, W, 1, C.edge, 0.6);
+      drawText(ctx, label, W / 2, 425, { font: 'display', size: 21, color: open ? C.mustard : C.faint, align: 'center', spacing: 2, alpha: 0.65 + 0.35 * Math.sin(this.t * 4.5) });
     }
 
-    drawText(ctx, `←/→ CHOOSE   ·   ENTER WALK IN   ·   G GUEST BOOK (${sv.guestBook.length})   ·   F FULLSCREEN   ·   M MUTE   ·   P PAUSE`, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
+    drawText(ctx, `←/→ CHOOSE   ·   ENTER WALK IN   ·   G GUEST BOOK (${sv.guestBook.length})`, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
 
     if (golden) {
       // thin gold proscenium — the quiet "you did it" frame around every replay

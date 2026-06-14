@@ -10,8 +10,8 @@ import { LuggageScene } from './scenes/luggage.js';
 import { ValetScene } from './scenes/valet.js';
 import { PitchScene } from './scenes/pitch.js';
 import { FinaleScene } from './scenes/finale.js';
-import { drawText, rect } from './util.js';
-import { C, filmLook } from './theme.js';
+import { drawText, rect, pointIn } from './util.js';
+import { C, filmLook, setReducedMotion } from './theme.js';
 
 const W = 960, H = 540;
 
@@ -40,11 +40,15 @@ const input = {
   pointer: { x: -1, y: -1, clicked: false, held: false, released: false },
 };
 
+const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+setReducedMotion(reducedMotion);
+
 const game = {
   input,
   save: new Save(),
   audio: new GameAudio(),
   paused: false,
+  reducedMotion,
   cursor: 'default',
   scenes: {},
   scene: null,
@@ -75,20 +79,44 @@ function syncMusic(name) {
   else game.audio.musicOff();
 }
 
+// The three actual shifts — the only scenes where "RESTART THIS SHIFT" is meaningful.
+function isShiftScene(s) {
+  return s === game.scenes.luggage || s === game.scenes.valet || s === game.scenes.pitch;
+}
+
+// playTime should only accrue while a shift is actually being played, not while
+// a howto/cutscene/ceremony screen waits for input. Block all non-play states.
+const NON_PLAY_STATES = new Set([
+  'intro', 'howto', 'stars', 'won', 'lost', 'handoff',
+  'parked', 'retry', 'session', 'meet', 'walk', 'letter', 'card',
+]);
+function isCountingPlayTime() {
+  return isShiftScene(game.scene) && !NON_PLAY_STATES.has(game.scene.state);
+}
+
+function toggleFullscreen() {
+  // Fullscreen must be requested inside a user-gesture handler.
+  if (document.fullscreenElement) document.exitFullscreen();
+  else if (canvas.requestFullscreen) canvas.requestFullscreen();
+}
+function toggleMute() {
+  game.audio.muted = !game.audio.muted;
+  game.save.data.muted = game.audio.muted;
+  game.save.write();
+}
+
 window.addEventListener('keydown', (e) => {
   game.audio.ensure();
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) e.preventDefault();
-  if (e.code === 'KeyF' && !e.repeat) {
-    // Fullscreen must be requested inside the gesture handler itself.
-    if (document.fullscreenElement) document.exitFullscreen();
-    else if (canvas.requestFullscreen) canvas.requestFullscreen();
-  }
+  if (e.code === 'KeyF' && !e.repeat) toggleFullscreen();
   if (!e.repeat) {
     input.down.add(e.code);
     input.pressed.add(e.code);
   }
 });
 window.addEventListener('keyup', (e) => input.down.delete(e.code));
+// Alt-Tab / focus loss: drop held keys so movement doesn't stick on return.
+window.addEventListener('blur', () => input.down.clear());
 
 function toCanvas(e) {
   const r = canvas.getBoundingClientRect();
@@ -118,6 +146,13 @@ canvas.addEventListener('pointerup', (e) => {
 canvas.addEventListener('pointercancel', () => {
   input.pointer.held = false;
   input.pointer.released = true;
+});
+// Pointer leaving the canvas: park it off-screen and drop any drag so hover
+// highlights clear and no stale drag survives an Alt-Tab.
+canvas.addEventListener('pointerleave', () => {
+  input.pointer.x = -1;
+  input.pointer.y = -1;
+  input.pointer.held = false;
 });
 
 window.__game = game; // debug handle for dev-tools poking
@@ -155,20 +190,12 @@ function tick(now) {
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
 
-  if (input.pressed.has('KeyM')) {
-    game.audio.muted = !game.audio.muted;
-    game.save.data.muted = game.audio.muted;
-    game.save.write();
-  }
-  if (input.pressed.has('KeyP') || input.pressed.has('Escape')) game.paused = !game.paused;
-  if (game.paused) {
-    if (input.pressed.has('KeyR')) {
-      game.paused = false;
-      game.scene.enter({});
-    } else if (input.pressed.has('KeyB') && game.scene !== game.scenes.hub) {
-      game.paused = false;
-      game.go('hub');
-    }
+  if (input.pressed.has('KeyM')) toggleMute();
+  // Pause only when there's a real shift/hub to pause — never mid-wipe, and
+  // never on the title or finale (where R/B are meaningless or destructive).
+  const pausable = !game.transition && game.scene !== game.scenes.title && game.scene !== game.scenes.finale;
+  if ((input.pressed.has('KeyP') || input.pressed.has('Escape')) && (pausable || game.paused)) {
+    game.paused = !game.paused;
   }
 
   game.cursor = 'default';
@@ -178,6 +205,7 @@ function tick(now) {
     if (tr.t >= 0.5 && !tr.switched) {
       tr.switched = true;
       game.scene = game.scenes[tr.to];
+      game.paused = false; // a wipe always lands on a fresh, unpaused scene
       game.scene.enter(tr.params);
       game.save.write(); // persists accumulated playTime without per-frame writes
       syncMusic(tr.to);
@@ -185,7 +213,10 @@ function tick(now) {
     if (tr.t >= 1) game.transition = null;
   } else if (!game.paused) {
     game.scene.update(dt);
-    if (game.scene !== game.scenes.title) game.save.data.playTime = (game.save.data.playTime || 0) + dt;
+    // Only count time while a shift is actively being played — not while a
+    // howto/cutscene/ceremony screen idles waiting for input (that would pad
+    // the forwarded Career Report stat).
+    if (isCountingPlayTime()) game.save.data.playTime = (game.save.data.playTime || 0) + dt;
   }
 
   ctx.setTransform(viewScale, 0, 0, viewScale, 0, 0);
@@ -196,17 +227,32 @@ function tick(now) {
   if (game.paused) {
     rect(ctx, 0, 0, W, H, C.ink, 0.84);
     drawText(ctx, 'PAUSED', W / 2, 158, { font: 'display', size: 72, color: C.mustard, align: 'center', spacing: 4 });
+    // Each row carries its own action so keyboard and mouse share one path.
+    // RESTART only appears on real shifts; BACK only away from the hub.
+    const restart = () => { game.paused = false; game.scene.enter({}); };
+    const back = () => { game.paused = false; game.go('hub'); };
     const opts = [
-      ['P', 'RESUME THE SHIFT'],
-      ['R', 'RESTART THIS SHIFT'],
-      ['B', 'BACK TO THE RESORT MAP'],
-      ['M', game.audio.muted ? 'SOUND ON' : 'SOUND OFF'],
-      ['F', 'FULLSCREEN'],
+      { key: 'P', label: 'RESUME THE SHIFT', act: () => { game.paused = false; } },
     ];
-    opts.forEach(([key, label], i) => {
+    if (isShiftScene(game.scene)) opts.push({ key: 'R', label: 'RESTART THIS SHIFT', act: restart });
+    if (game.scene !== game.scenes.hub) opts.push({ key: 'B', label: 'BACK TO THE RESORT MAP', act: back });
+    opts.push({ key: 'M', label: game.audio.muted ? 'SOUND ON' : 'SOUND OFF', act: toggleMute });
+    opts.push({ key: 'F', label: 'FULLSCREEN', act: toggleFullscreen });
+
+    const p = input.pointer;
+    opts.forEach((opt, i) => {
       const y = 268 + i * 34;
-      drawText(ctx, key, W / 2 - 30, y - 4, { font: 'display', size: 22, color: C.mustard, align: 'right' });
-      drawText(ctx, label, W / 2 - 10, y, { size: 12, weight: 700, color: i === 0 ? C.cream : C.dim, spacing: 2 });
+      // Clickable band spanning the key + label, centered around the column.
+      const rx = W / 2 - 150, ry = y - 18, rw = 300, rh = 30;
+      const hover = pointIn(p, rx, ry, rw, rh);
+      if (hover) game.cursor = 'pointer';
+      // M and F keys are handled globally (anywhere); only honor P/R/B keys here
+      // so they don't double-fire. Clicks trigger every row.
+      const keyOn = (opt.key !== 'M' && opt.key !== 'F') && input.pressed.has('Key' + opt.key);
+      if (keyOn || (hover && input.pointer.clicked)) opt.act();
+      const lit = i === 0 || hover;
+      drawText(ctx, opt.key, W / 2 - 30, y - 4, { font: 'display', size: 22, color: C.mustard, align: 'right' });
+      drawText(ctx, opt.label, W / 2 - 10, y, { size: 12, weight: 700, color: lit ? C.cream : C.dim, spacing: 2 });
     });
   }
   if (game.audio.muted) {

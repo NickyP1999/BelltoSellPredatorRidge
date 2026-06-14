@@ -7,6 +7,7 @@ const DEFAULTS = {
   playTime: 0,
   guestBook: [],
   bookSeen: 0,
+  finaleSeen: false,
   seenHowTo: {},
   muted: false,
 };

@@ -1,4 +1,5 @@
 // Canvas text + geometry helpers shared by all scenes.
+import { C } from './theme.js';
 
 export const FONT = {
   display: '"Bebas Neue", "Arial Narrow", sans-serif',
@@ -13,7 +14,7 @@ export function fontString(font = 'body', size = 14, weight = 400, italic = fals
 
 export function drawText(ctx, text, x, y, opts = {}) {
   const {
-    font = 'body', size = 14, weight = 400, color = '#f2e9d8',
+    font = 'body', size = 14, weight = 400, color = C.cream,
     align = 'left', baseline = 'top', spacing = 0, alpha = 1,
     rotate = 0, italic = false, shadow = null, // shadow: {color, dx, dy}
   } = opts;
@@ -28,6 +29,8 @@ export function drawText(ctx, text, x, y, opts = {}) {
   if (shadow) { ctx.fillStyle = shadow.color; ctx.fillText(text, shadow.dx, shadow.dy); }
   ctx.fillStyle = color;
   ctx.fillText(text, 0, 0);
+  // Some Safari versions don't restore letterSpacing via save()/restore(); reset explicitly.
+  if (spacing) { try { ctx.letterSpacing = '0px'; } catch { /* older browsers */ } }
   ctx.restore();
 }
 
@@ -36,6 +39,7 @@ export function measure(ctx, text, opts = {}) {
   ctx.font = fontString(opts.font, opts.size, opts.weight, opts.italic);
   if (opts.spacing) { try { ctx.letterSpacing = opts.spacing + 'px'; } catch { /* older browsers */ } }
   const w = ctx.measureText(text).width;
+  if (opts.spacing) { try { ctx.letterSpacing = '0px'; } catch { /* older browsers */ } }
   ctx.restore();
   return w;
 }
@@ -57,6 +61,7 @@ export function wrap(ctx, text, maxWidth, opts = {}) {
     }
   }
   if (line) lines.push(line);
+  if (opts.spacing) { try { ctx.letterSpacing = '0px'; } catch { /* older browsers */ } }
   ctx.restore();
   return lines;
 }

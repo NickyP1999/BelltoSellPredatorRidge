@@ -352,6 +352,7 @@ export class PitchScene {
     this.playsMade = 0;
     this.beatIdx = 0;
     this.beat = null;
+    this.winAfterBeat = false;
     this.beatOrder = [0, 1];
     this.history = [];
     this.bestPlay = null;
@@ -540,7 +541,14 @@ export class PitchScene {
 
   finishResolve() {
     this.pending = null;
-    if (this.charm >= this.enc.charmTarget) { this.winEncounter(); return; }
+    // Enough charm to win — but if a teaching beat is still owed, show it
+    // first so the strongest helpful-vs-pushy moment is never skipped by an
+    // early close. winAfterBeat routes beatResolve straight to the win.
+    if (this.charm >= this.enc.charmTarget) {
+      if (this.beatIdx < this.enc.beats.length) { this.startBeat(true); return; }
+      this.winEncounter();
+      return;
+    }
     if (this.turnsLeft <= 0) {
       if (!this.secondWind) {
         // once per duel: the guest lingers, the pitch isn't dead yet
@@ -558,15 +566,22 @@ export class PitchScene {
       this.game.audio.lose();
       return;
     }
-    if ((this.playsMade === 2 || this.playsMade === 4) && this.beatIdx < this.enc.beats.length) {
-      this.beat = this.enc.beats[this.beatIdx++];
-      this.beatOrder = shuffle([0, 1]);
-      this.typed = 0;
-      this.state = 'beat';
-      this.t = 0;
+    // Gate on beatIdx (not exact play parity) so neither beat can be skipped
+    // by an early win or a second-wind that consumes the play-4 slot.
+    if (((this.playsMade >= 2 && this.beatIdx === 0) || (this.playsMade >= 4 && this.beatIdx === 1)) && this.beatIdx < this.enc.beats.length) {
+      this.startBeat(false);
       return;
     }
     this.nextObjection();
+  }
+
+  startBeat(winAfter) {
+    this.winAfterBeat = winAfter;
+    this.beat = this.enc.beats[this.beatIdx++];
+    this.beatOrder = shuffle([0, 1]);
+    this.typed = 0;
+    this.state = 'beat';
+    this.t = 0;
   }
 
   nextObjection() {
@@ -599,8 +614,9 @@ export class PitchScene {
 
   winEncounter() {
     const e = this.enc;
+    this.charmShown = this.charm; // snap the meter to full so the bar resolves cleanly
     this.turnsBanked += this.turnsLeft;
-    this.tipsEarned = 10 + this.turnsLeft * 5 + Math.max(0, this.charm - e.charmTarget);
+    this.tipsEarned = 10 + this.turnsLeft * 5 + Math.min(Math.max(0, this.charm - e.charmTarget), 20);
     this.runScore += this.turnsLeft * 100 + this.charm;
     const sv = this.game.save;
     sv.data.tips += this.tipsEarned;
@@ -644,6 +660,8 @@ export class PitchScene {
     this.flash = Math.max(0, this.flash - dt * 4);
     this.hintT = Math.max(0, this.hintT - dt);
     this.portraitKick = Math.max(0, (this.portraitKick || 0) - dt * 2.5);
+    // tween the displayed charm toward the real value so the meter animates
+    this.charmShown += (this.charm - this.charmShown) * Math.min(1, dt * 9);
     for (const p of this.particles) {
       p.life += dt;
       p.x += p.vx * dt; p.y += p.vy * dt;
@@ -786,7 +804,9 @@ export class PitchScene {
             this.sprites.push(s);
           }
         }
-        if (this.t > 1.05) this.finishResolve();
+        // hold a non-crit (miss) a touch longer so first-timers read the
+        // matching-rule lesson before the screen moves on
+        if (this.t > (this.pending && !this.pending.crit ? 1.5 : 1.05)) this.finishResolve();
         break;
 
       case 'beat': {
@@ -811,7 +831,11 @@ export class PitchScene {
       }
 
       case 'beatResolve':
-        if (this.t > 1.25) { this.feedback = null; this.nextObjection(); }
+        if (this.t > 1.25) {
+          this.feedback = null;
+          if (this.winAfterBeat) { this.winAfterBeat = false; this.winEncounter(); }
+          else this.nextObjection();
+        }
         break;
 
       case 'won':
@@ -1066,7 +1090,7 @@ export class PitchScene {
           ctx.translate(STAMP_AT.x, STAMP_AT.y);
           ctx.scale(k, k);
           drawText(ctx, `+${pd.gained}`, 0, -30, { font: 'display', size: 56, color: C.cream, align: 'center', shadow: { color: C.ink, dx: 5, dy: 5 } });
-          drawText(ctx, `SOLID — BUT IT DIDN'T COUNTER THEIR ${this.obj().tag.toUpperCase()} WORRY`, 0, 28, { size: 11, weight: 700, color: C.dim, align: 'center', spacing: 1 });
+          drawText(ctx, `SOLID — BUT IT DIDN'T COUNTER THEIR ${this.obj().tag.toUpperCase()} WORRY`, 0, 30, { size: 14, weight: 700, color: C.cream, align: 'center', spacing: 1 });
           ctx.restore();
         }
       }
@@ -1392,7 +1416,7 @@ export class PitchScene {
     drawText(ctx, 'NO SALE.', 0, -40, { font: 'display', size: 80, color: C.red, align: 'center', shadow: { color: '#4a1812', dx: 5, dy: 5 } });
     ctx.restore();
     drawText(ctx, '"We\'ll think about it..."', W / 2, 252, { size: 16, weight: 500, italic: true, color: C.cream, align: 'center' });
-    drawText(ctx, 'IN THIS BUSINESS, THAT MEANS: TRY AGAIN.', W / 2, 282, { size: 10, weight: 700, color: C.dim, align: 'center', spacing: 2 });
+    drawText(ctx, 'NOT A NO — JUST A WORRY YOU HAVEN\'T ANSWERED YET.', W / 2, 282, { size: 10, weight: 700, color: C.dim, align: 'center', spacing: 2 });
     drawText(ctx, `CHARM REACHED  ${this.charm} / ${this.enc.charmTarget}`, W / 2, 316, { font: 'display', size: 22, color: C.dim, align: 'center' });
     drawText(ctx, 'TIP — MATCH THE CARD TAG TO THE OBJECTION TAG FOR DOUBLE CHARM', W / 2, 348, { size: 10, weight: 700, color: C.teal, align: 'center', spacing: 1 });
     if (this.blink()) {
@@ -1425,7 +1449,7 @@ export class PitchScene {
       stamp(ctx, 'NEW BEST!', W / 2 + 178, 336, { size: 15, bg: C.teal, rot: 0.08 });
     }
     drawText(ctx, `BEST ${this.game.save.data.best.pitch}   ·   TURNS BANKED ${this.turnsBanked}   ·   TIPS ${this.game.save.data.tips}`, W / 2, 372, { size: 12, weight: 700, color: C.faint, align: 'center', spacing: 2 });
-    drawText(ctx, 'FASTER CLOSES BANK MORE TURNS — 7 BANKED IS A 3-STAR SHIFT', W / 2, 396, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 1 });
+    drawText(ctx, 'READING THEM RIGHT THE FIRST TIME BANKS MORE TURNS — 7 BANKED IS A 3-STAR SHIFT', W / 2, 396, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 1 });
 
     if (this.starsShown === this.starsEarned && this.starsEarned > 0) {
       const line = 'WORD TRAVELS FAST AT THE SALES OFFICE...';
