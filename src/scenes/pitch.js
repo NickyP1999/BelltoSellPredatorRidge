@@ -1,5 +1,5 @@
 import { drawText, wrap, rect, frame, clamp, lerp, pointIn, shuffle } from '../util.js';
-import { C, bokehBg, easeOutCubic, easeOutExpo, easeOutBack, halftone, motes, panel, sparkle, speedlines, stamp } from '../theme.js';
+import { C, bokehBg, breath, easeOutCubic, easeOutExpo, easeOutBack, halftone, intro, motes, panel, sparkle, speedlines, stamp } from '../theme.js';
 import { ENCOUNTERS, TAGS, RARITY } from '../data/cards.js';
 import { PLAYER_NAME } from '../config.js';
 
@@ -357,7 +357,10 @@ export class PitchScene {
     this.history = [];
     this.bestPlay = null;
     this.sel = 0;
+    this._lastSel = 0;
+    this.selT = 0;
     this.typed = 0;
+    this.objDoneT = 0;
     this.pending = null;
     this.pendingDraw = false;
     this.feedback = null;
@@ -580,6 +583,7 @@ export class PitchScene {
     this.beat = this.enc.beats[this.beatIdx++];
     this.beatOrder = shuffle([0, 1]);
     this.typed = 0;
+    this.promptDoneT = 0;
     this.state = 'beat';
     this.t = 0;
   }
@@ -588,13 +592,19 @@ export class PitchScene {
     this.objIdx++;
     this.ensureMatchableObjection();
     this.typed = 0;
+    this.objDoneT = 0;
     this.state = 'objection';
     this.t = 0;
   }
 
   beatBox(i) { return { x: 36, y: 268 + i * 56, w: 888, h: 48 }; }
 
-  hintBtn() { return { x: 836, y: 238, w: 88, h: 22 }; }
+  // Bigger, finger-friendly tap target on touch; tidy chip on desktop.
+  hintBtn() {
+    return this.game.touch
+      ? { x: 818, y: 230, w: 106, h: 32 }
+      : { x: 836, y: 236, w: 88, h: 22 };
+  }
 
   pickBeat(slot) {
     const opt = this.beat.options[this.beatOrder[slot]];
@@ -662,6 +672,8 @@ export class PitchScene {
     this.portraitKick = Math.max(0, (this.portraitKick || 0) - dt * 2.5);
     // tween the displayed charm toward the real value so the meter animates
     this.charmShown += (this.charm - this.charmShown) * Math.min(1, dt * 9);
+    // stamp the moment the highlighted card changes so the preview can fade in
+    if (this.sel !== this._lastSel) { this._lastSel = this.sel; this.selT = this.tAll; }
     for (const p of this.particles) {
       p.life += dt;
       p.x += p.vx * dt; p.y += p.vy * dt;
@@ -697,6 +709,7 @@ export class PitchScene {
         if (confirm && this.t > 0.3) {
           this.startDeal();
           this.typed = 0;
+          this.objDoneT = 0;
           this.state = 'objection';
           this.t = 0;
         }
@@ -710,8 +723,11 @@ export class PitchScene {
           // duck the typing blips while the player is reading their hand
           if (Math.floor(this.typed) > before && Math.floor(this.typed) % 3 === 0 && this.spriteAt(p) < 0) this.game.audio.blip();
           if ((anyKey || p.clicked) && this.t > 0.15) this.typed = len;
-        } else if (this.t > 0.25) {
-          this.state = 'choose';
+        } else {
+          // stamp the instant the worry is fully read, so the tag verdict can
+          // ease in cleanly (re-armed to 0 at the start of each objection)
+          if (!this.objDoneT) this.objDoneT = this.tAll;
+          if (this.t > 0.25) this.state = 'choose';
         }
         break;
       }
@@ -816,6 +832,7 @@ export class PitchScene {
           this.typed += dt * 70;
           if (Math.floor(this.typed) > before && Math.floor(this.typed) % 3 === 0 && this.spriteAt(p) < 0) this.game.audio.blip();
           if ((anyKey || p.clicked) && this.t > 0.15) this.typed = len;
+          this.promptDoneT = this.t; // keeps the options' stagger anchored to "just finished"
           break;
         }
         for (let i = 0; i < 2; i++) {
@@ -917,21 +934,30 @@ export class PitchScene {
     bokehBg(ctx, 'pitch-' + e.id, { top: '#251b31', mid: '#150f1d', bottom: '#0b090f', glowA: '#f2b63a', glowB: e.accent });
     motes(ctx, this.tAll);
 
-    // ── Header
-    drawText(ctx, 'LEVEL 03 · THE PITCH', 36, 12, { size: 10, weight: 700, color: e.accent, spacing: 3 });
-    drawText(ctx, `SESSION ${e.session} — ${e.title}`, 36, 24, { font: 'display', size: 30, color: C.cream, spacing: 1 });
-    drawText(ctx, 'GUEST', 36, 60, { size: 9, weight: 700, color: C.faint, spacing: 2 });
+    // ── Header. A staggered intro() reveal organizes the eye top-down ONCE when
+    // the board first appears (keyed to tMeet, which runs from encounter start),
+    // so the HUD settles in rather than dumping at once — and crucially it does
+    // NOT re-fade on every objection (that would read as flicker, not help).
+    const hi = (delay) => intro(this.tMeet, delay);
+
+    drawText(ctx, 'LEVEL 03 · THE PITCH', 36, 12, { size: 10, weight: 700, color: e.accent, spacing: 3, alpha: hi(0) });
+    drawText(ctx, `SESSION ${e.session} — ${e.title}`, 36, 24, { font: 'display', size: 30, color: C.cream, spacing: 1, alpha: hi(0) });
+    drawText(ctx, 'GUEST', 36, 62, { size: 9, weight: 700, color: C.faint, spacing: 2, alpha: hi(0.04) * 0.85 });
     for (let i = 0; i < 3; i++) {
-      rect(ctx, 82 + i * 14, 60, 9, 9, i <= this.encIdx ? e.accent : '#241f2b');
+      rect(ctx, 82 + i * 14, 62, 9, 9, i <= this.encIdx ? e.accent : '#241f2b', hi(0.04));
     }
-    drawText(ctx, String(this.turnsLeft), 924, 6, { font: 'display', size: 44, color: this.turnsLeft <= 2 ? C.red : C.cream, align: 'right' });
-    drawText(ctx, 'TURNS LEFT', 924, 52, { size: 9, weight: 700, color: C.faint, align: 'right', spacing: 2 });
+    const turnAlarm = this.turnsLeft <= 2;
+    drawText(ctx, String(this.turnsLeft), 924, 6, { font: 'display', size: 44, color: turnAlarm ? C.red : C.cream, align: 'right', alpha: hi(0.04) });
+    drawText(ctx, 'TURNS LEFT', 924, 54, { size: 9, weight: 700, color: turnAlarm ? C.red : C.faint, align: 'right', spacing: 2, alpha: hi(0.04) * 0.85 });
 
     // ── Charm meter
     const target = e.charmTarget;
-    drawText(ctx, 'CHARM', 36, 74, { size: 10, weight: 700, color: C.mustard, spacing: 3 });
-    drawText(ctx, `${Math.round(this.charmShown)} / ${target}`, 924, 68, { font: 'display', size: 20, color: C.cream, align: 'right' });
+    const meterA = hi(0.1);
+    drawText(ctx, 'CHARM', 36, 74, { size: 10, weight: 700, color: C.mustard, spacing: 3, alpha: meterA });
+    drawText(ctx, `${Math.round(this.charmShown)} / ${target}`, 924, 70, { font: 'display', size: 20, color: C.cream, align: 'right', alpha: meterA });
     panel(ctx, 36, 88, 888, 12, { shadow: false, r: 4, fill: ['#0e0b12', '#1a151f'] });
+    // fill width tracks the smoothly-tweened charm only — it must never collapse
+    // on a new objection (the intro() above fades the labels in, not the bar)
     const fw = clamp(this.charmShown / target, 0, 1) * 884;
     if (fw > 0) {
       ctx.save();
@@ -956,11 +982,12 @@ export class PitchScene {
     }
     const gap = target - this.charm;
     if (this.state === 'choose' && gap > 0 && gap <= 24) {
+      // "almost there" cue rides the meter row (no longer collides with the
+      // speech panel that starts at y104); the frame pulse does the pointing.
       frame(ctx, 34, 86, 892, 16, C.mustard, 1);
-      drawText(ctx, 'ONE GOOD CARD AWAY', 36, 104, { size: 8, weight: 700, color: C.mustard, spacing: 2, alpha: 0.5 + 0.5 * Math.sin(this.tAll * 6) });
-    }
-    if (this.combo >= 2) {
-      stamp(ctx, `STREAK x${this.combo}`, 790, 78, { size: 12, bg: C.mustard, rot: -0.06 });
+      drawText(ctx, 'ONE GOOD CARD AWAY', 760, 74, { size: 8, weight: 700, color: C.mustard, align: 'right', spacing: 2, alpha: 0.5 + 0.5 * Math.sin(this.tAll * 6) });
+    } else if (this.combo >= 2) {
+      stamp(ctx, `STREAK x${this.combo}`, 800, 78, { size: 12, bg: C.mustard, rot: -0.06 });
     }
 
     // ── Guest + speech
@@ -973,31 +1000,41 @@ export class PitchScene {
     drawText(ctx, '“', SPEECH.x + 22, SPEECH.y + 6, { font: 'display', size: 64, color: e.accent, alpha: 0.4 });
 
     const tx = SPEECH.x + 64;
-    const tw = SPEECH.w - 110;
+    const tw = SPEECH.w - 124;          // wider right gutter keeps text off the tag stamp
+    const LBL = SPEECH.y + 20;          // label baseline — a touch lower for breathing room
+    const BODY = SPEECH.y + 48;         // first body line — more air under the label
+    const LH = 27;                      // looser line height so the quote isn't cramped
 
     if (this.state === 'meet') {
-      drawText(ctx, `${e.guest.toUpperCase()} — ${e.guestDesc.toUpperCase()}`, tx, SPEECH.y + 16, { size: 10, weight: 700, color: C.dim, spacing: 2 });
+      drawText(ctx, `${e.guest.toUpperCase()} — ${e.guestDesc.toUpperCase()}`, tx, LBL, { size: 10, weight: 700, color: C.dim, spacing: 2 });
       wrap(ctx, e.intro, tw, { size: 17, weight: 500 }).slice(0, 3).forEach((ln, i) =>
-        drawText(ctx, ln, tx, SPEECH.y + 38 + i * 24, { size: 17, weight: 500, color: C.cream }));
-      if (this.blink()) drawText(ctx, 'ENTER → DEAL ME IN', SPEECH.x + SPEECH.w - 18, SPEECH.y + SPEECH.h - 24, { size: 11, weight: 700, color: C.mustard, align: 'right', spacing: 2 });
+        drawText(ctx, ln, tx, BODY + i * LH, { size: 17, weight: 500, color: C.cream }));
+      const prompt = this.game.touch ? 'TAP → DEAL ME IN' : 'ENTER → DEAL ME IN';
+      if (this.blink()) drawText(ctx, prompt, SPEECH.x + SPEECH.w - 18, SPEECH.y + SPEECH.h - 24, { size: 11, weight: 700, color: C.mustard, align: 'right', spacing: 2 });
     } else if (this.state === 'beat' || (this.state === 'beatResolve' && this.beat)) {
-      drawText(ctx, 'THE CONVERSATION TURNS...', tx, SPEECH.y + 16, { size: 10, weight: 700, color: C.dim, spacing: 2 });
+      drawText(ctx, 'THE CONVERSATION TURNS...', tx, LBL, { size: 10, weight: 700, color: C.dim, spacing: 2 });
       const shown = this.state === 'beat' ? this.beat.prompt.slice(0, Math.floor(this.typed)) : this.beat.prompt;
       wrap(ctx, shown, tw, { size: 17, weight: 500 }).slice(0, 3).forEach((ln, i) =>
-        drawText(ctx, ln, tx, SPEECH.y + 38 + i * 24, { size: 17, weight: 500, color: C.cream }));
+        drawText(ctx, ln, tx, BODY + i * LH, { size: 17, weight: 500, color: C.cream }));
     } else {
       const o = this.obj();
       const full = this.state !== 'objection';
       const shown = full ? o.text : o.text.slice(0, Math.floor(this.typed));
       const done = full || this.typed >= o.text.length;
-      drawText(ctx, 'OBJECTION', tx, SPEECH.y + 16, { size: 10, weight: 700, color: C.dim, spacing: 3 });
+      drawText(ctx, 'OBJECTION', tx, LBL, { size: 10, weight: 700, color: C.dim, spacing: 3 });
       wrap(ctx, shown, tw, { size: 17, weight: 500 }).slice(0, 3).forEach((ln, i) =>
-        drawText(ctx, ln, tx, SPEECH.y + 38 + i * 24, { size: 17, weight: 500, color: C.cream }));
+        drawText(ctx, ln, tx, BODY + i * LH, { size: 17, weight: 500, color: C.cream }));
       if (done) {
         const tag = TAGS[o.tag];
-        stamp(ctx, o.tag.toUpperCase(), SPEECH.x + SPEECH.w - 64, SPEECH.y + 26, { size: 15, bg: tag.color, rot: -0.08 });
-        drawTagIcon(ctx, o.tag, SPEECH.x + SPEECH.w - 116, SPEECH.y + 26, 9, tag.color);
-        drawText(ctx, tag.hint, SPEECH.x + SPEECH.w - 18, SPEECH.y + 46, { size: 10, color: tag.color, align: 'right', italic: true });
+        // verdict eases in the instant the worry finishes typing — anchored to
+        // objDoneT so it's a clean reveal, not a value already sitting there
+        const ta = intro(this.tAll - (this.objDoneT || 0), 0);
+        ctx.save();
+        ctx.globalAlpha = ta;
+        stamp(ctx, o.tag.toUpperCase(), SPEECH.x + SPEECH.w - 64, SPEECH.y + 28, { size: 15, bg: tag.color, rot: -0.08 });
+        drawTagIcon(ctx, o.tag, SPEECH.x + SPEECH.w - 116, SPEECH.y + 28, 9, tag.color);
+        drawText(ctx, tag.hint, SPEECH.x + SPEECH.w - 18, SPEECH.y + 50, { size: 10, color: tag.color, align: 'right', italic: true });
+        ctx.restore();
       }
     }
 
@@ -1014,32 +1051,47 @@ export class PitchScene {
       const rar = RARITY[c.rarity];
       const hb = this.hintBtn();
       if (this.hintT > 0) {
-        stamp(ctx, `THEIR WORRY IS ${this.obj().tag.toUpperCase()} — MATCH IT`, hb.x - 110, hb.y + 11, { size: 12, bg: TAGS[this.obj().tag].color, rot: 0 });
+        stamp(ctx, `THEIR WORRY IS ${this.obj().tag.toUpperCase()} — MATCH IT`, hb.x - 110, hb.y + hb.h / 2, { size: 12, bg: TAGS[this.obj().tag].color, rot: 0 });
       } else {
-        panel(ctx, hb.x, hb.y, hb.w, hb.h, { shadow: false, border: pointIn(p, hb.x, hb.y, hb.w, hb.h) ? C.mustard : C.edge });
-        drawText(ctx, 'HINT · H', hb.x + hb.w / 2, hb.y + 5, { font: 'display', size: 14, color: C.mustard, align: 'center', spacing: 1 });
+        const over = pointIn(p, hb.x, hb.y, hb.w, hb.h);
+        panel(ctx, hb.x, hb.y, hb.w, hb.h, { shadow: false, border: over ? C.mustard : C.edge });
+        drawText(ctx, this.game.touch ? 'HINT' : 'HINT · H', hb.x + hb.w / 2, hb.y + hb.h / 2, { font: 'display', size: 14, color: C.mustard, align: 'center', baseline: 'middle', spacing: 1 });
       }
+      // The preview fades in gently as the selection settles — keeps the eye on
+      // the chosen card rather than snapping a fresh block of text into place.
+      const pv = this.drag ? 1 : intro(this.tAll - (this.selT || 0), 0);
+      ctx.save();
+      ctx.globalAlpha *= pv;
       panel(ctx, PREV.x, PREV.y, PREV.w, PREV.h, { border: rar.color, borderW: c.rarity === 'legendary' ? 2 : 1 });
-      drawText(ctx, `YOU'D SAY — ${c.name.toUpperCase()}`, PREV.x + 16, PREV.y + 10, { size: 10, weight: 700, color: rar.color, spacing: 2 });
-      const lw = c.tag === this.obj().tag ? PREV.w - 200 : PREV.w - 60;
+      drawText(ctx, `YOU'D SAY — ${c.name.toUpperCase()}`, PREV.x + 18, PREV.y + 12, { size: 10, weight: 700, color: rar.color, spacing: 2 });
+      const counters = c.tag === this.obj().tag;
+      const lw = counters ? PREV.w - 210 : PREV.w - 64;
       wrap(ctx, '"' + c.line + '"', lw, { size: 15, weight: 500, italic: true }).slice(0, 2).forEach((ln, i) =>
-        drawText(ctx, ln, PREV.x + 16, PREV.y + 30 + i * 22, { size: 15, weight: 500, italic: true, color: C.cream }));
-      if (c.tag === this.obj().tag) {
-        stamp(ctx, 'COUNTERS → DOUBLE CHARM', PREV.x + PREV.w - 100, PREV.y + 46, { size: 14, bg: TAGS[c.tag].color, rot: -0.07 });
+        drawText(ctx, ln, PREV.x + 18, PREV.y + 34 + i * 23, { size: 15, weight: 500, italic: true, color: C.cream }));
+      if (counters) {
+        stamp(ctx, 'COUNTERS → DOUBLE CHARM', PREV.x + PREV.w - 100, PREV.y + 44, { size: 14, bg: TAGS[c.tag].color, rot: -0.07 });
       }
+      ctx.restore();
     }
 
     if (this.state === 'beat' && this.typed >= this.beat.prompt.length) {
-      drawText(ctx, 'PICK YOUR LINE', 36, 250, { size: 10, weight: 700, color: C.mustard, spacing: 3 });
+      // promptDone resets the local reveal clock so the two lines stagger in
+      // only after the prompt has finished typing — one focal point at a time.
+      const rd = this.t - (this.promptDoneT || 0);
+      drawText(ctx, this.game.touch ? 'TAP YOUR LINE' : 'PICK YOUR LINE', 36, 250, { size: 10, weight: 700, color: C.mustard, spacing: 3, alpha: intro(rd, 0) });
       for (let i = 0; i < 2; i++) {
         const b = this.beatBox(i);
+        const a = intro(rd, 0.06 + i * 0.08);
+        ctx.save();
+        ctx.globalAlpha *= a;
         const hov = pointIn(p, b.x, b.y, b.w, b.h);
         panel(ctx, b.x + (hov ? 6 : 0), b.y, b.w - (hov ? 6 : 0), b.h, { border: hov ? C.mustard : C.edge, fill: hov ? ['#262030', '#171219'] : undefined });
         const opt = this.beat.options[this.beatOrder[i]];
-        drawText(ctx, i === 0 ? 'A' : 'B', b.x + 22, b.y + 8, { font: 'display', size: 30, color: C.mustard });
-        const lines = wrap(ctx, opt.text, b.w - 90, { size: 14, weight: 500 }).slice(0, 2);
+        drawText(ctx, i === 0 ? 'A' : 'B', b.x + 24, b.y + 8, { font: 'display', size: 30, color: C.mustard });
+        const lines = wrap(ctx, opt.text, b.w - 96, { size: 14, weight: 500 }).slice(0, 2);
         lines.forEach((ln, k) =>
-          drawText(ctx, ln, b.x + 52, b.y + (lines.length === 1 ? 16 : 7) + k * 18, { size: 14, weight: 500, color: C.cream }));
+          drawText(ctx, ln, b.x + 56, b.y + (lines.length === 1 ? 16 : 7) + k * 18, { size: 14, weight: 500, color: C.cream }));
+        ctx.restore();
       }
     }
 
@@ -1059,12 +1111,15 @@ export class PitchScene {
       const pd = this.pending;
       const flyT = clamp(this.t / 0.16, 0, 1);
       if (flyT < 1) {
-        const fx = lerp(pd.from.x, STAMP_AT.x, easeOutCubic(flyT));
-        const fy = lerp(pd.from.y, STAMP_AT.y, easeOutCubic(flyT));
+        const e2 = easeOutCubic(flyT);
+        const fx = lerp(pd.from.x, STAMP_AT.x, e2);
+        // a slight upward arc on the way to the slam point reads cleaner than a
+        // straight slide and guides the eye to where the verdict lands
+        const fy = lerp(pd.from.y, STAMP_AT.y, e2) - Math.sin(flyT * Math.PI) * 26;
         ctx.save();
         ctx.translate(fx, fy);
         ctx.rotate(-0.12 * flyT);
-        const s = lerp(1.05, 0.6, flyT);
+        const s = lerp(1.05, 0.6, e2);
         ctx.scale(s, s);
         this.drawCardFace(ctx, pd.card, { alpha: 1 });
         ctx.restore();
@@ -1102,7 +1157,10 @@ export class PitchScene {
 
     // teach the hand once, then get out of the way
     if (this.state === 'choose' && this.encIdx === 0 && this.playsMade === 0) {
-      drawText(ctx, 'DRAG UP TO PLAY · DRAG ACROSS TO REARRANGE · CLICK PLAYS · H HINT', W / 2, 357, { size: 9, weight: 700, color: C.faint, align: 'center', spacing: 2 });
+      const teach = this.game.touch
+        ? 'TAP A CARD TO PLAY · DRAG ACROSS TO REARRANGE · TAP HINT'
+        : 'DRAG UP TO PLAY · DRAG ACROSS TO REARRANGE · CLICK PLAYS · H HINT';
+      drawText(ctx, teach, W / 2, 357, { size: 9, weight: 700, color: C.faint, align: 'center', spacing: 2 });
     }
   }
 
@@ -1350,7 +1408,7 @@ export class PitchScene {
       drawText(ctx, `${e.guest.toUpperCase()}  ·  ${e.place.toUpperCase()}`, 64, 472 + (1 - bandT) * 60, { size: 12, weight: 700, color: e.accent, spacing: 3 });
       ctx.restore();
     }
-    if (t > 0.7) drawText(ctx, 'ENTER → SKIP', 924, 350, { size: 10, weight: 700, color: C.ink, align: 'right', spacing: 2, alpha: 0.65 });
+    if (t > 0.7) drawText(ctx, this.game.touch ? 'TAP → SKIP' : 'ENTER → SKIP', 924, 350, { size: 10, weight: 700, color: C.ink, align: 'right', spacing: 2, alpha: 0.65 });
   }
 
   drawWon(ctx) {
@@ -1400,7 +1458,8 @@ export class PitchScene {
       drawText(ctx, ln, 218, 404 + i * 16, { size: 12, weight: 700, color: C.ink }));
 
     if (this.blink()) {
-      const next = this.encIdx + 1 < ENCOUNTERS.length ? 'ENTER → NEXT GUEST' : 'ENTER → COLLECT YOUR STARS';
+      const go = this.game.touch ? 'TAP' : 'ENTER';
+      const next = this.encIdx + 1 < ENCOUNTERS.length ? `${go} → NEXT GUEST` : `${go} → COLLECT YOUR STARS`;
       drawText(ctx, next, 840, 472, { size: 12, weight: 700, color: C.mustard, align: 'right', spacing: 2 });
     }
   }
@@ -1420,10 +1479,12 @@ export class PitchScene {
     drawText(ctx, `CHARM REACHED  ${this.charm} / ${this.enc.charmTarget}`, W / 2, 316, { font: 'display', size: 22, color: C.dim, align: 'center' });
     drawText(ctx, 'TIP — MATCH THE CARD TAG TO THE OBJECTION TAG FOR DOUBLE CHARM', W / 2, 348, { size: 10, weight: 700, color: C.teal, align: 'center', spacing: 1 });
     if (this.blink()) {
-      const next = this.encIdx + 1 < ENCOUNTERS.length ? 'ENTER → NEXT GUEST' : 'ENTER → COLLECT YOUR STARS';
+      const go = this.game.touch ? 'TAP' : 'ENTER';
+      const next = this.encIdx + 1 < ENCOUNTERS.length ? `${go} → NEXT GUEST` : `${go} → COLLECT YOUR STARS`;
       drawText(ctx, next, W / 2, 380, { font: 'display', size: 24, color: C.mustard, align: 'center', spacing: 2 });
     }
-    drawText(ctx, 'R → TAKE ANOTHER RUN AT THIS GUEST', W / 2, 410, { size: 10, weight: 700, color: C.dim, align: 'center', spacing: 2 });
+    // R-retry is keyboard-only; hide the prompt on touch where there's no key to press
+    if (!this.game.touch) drawText(ctx, 'R → TAKE ANOTHER RUN AT THIS GUEST', W / 2, 410, { size: 10, weight: 700, color: C.dim, align: 'center', spacing: 2 });
   }
 
   drawStars(ctx) {
@@ -1457,7 +1518,8 @@ export class PitchScene {
       drawText(ctx, shown, 900, 480, { size: 14, weight: 500, italic: true, color: C.dim, align: 'right', spacing: 2 });
     }
     if (this.blink() && this.t > 0.6 + this.starsEarned * 0.55 + 0.3) {
-      drawText(ctx, this.career.label, W / 2, 440, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
+      const label = this.game.touch ? this.career.label.replace('ENTER', 'TAP') : this.career.label;
+      drawText(ctx, label, W / 2, 440, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
     }
   }
 
@@ -1466,22 +1528,34 @@ export class PitchScene {
     rect(ctx, 0, 60, W, 4, C.mustard);
     drawText(ctx, 'LEVEL 03', W / 2, 84, { size: 11, weight: 700, color: C.mustard, align: 'center', spacing: 5 });
     drawText(ctx, 'HOW TO PLAY — THE PITCH', W / 2, 98, { font: 'display', size: 58, color: C.cream, align: 'center', spacing: 2 });
+    const playRule = this.game.touch
+      ? 'Drag cards to rearrange your hand. Tap one to play it.'
+      : 'Drag cards to rearrange your hand. Drag one up — or click it — to play.';
     const rules = [
       'A guest raises an OBJECTION — read its colored tag.',
       'Play a pitch card with the MATCHING tag to counter it for DOUBLE charm.',
-      'Drag cards to rearrange your hand. Drag one up — or click it — to play.',
+      playRule,
       'Fill the meter before turns run out. Between pitches, pick the better line.',
       'Helpful wins. Pushy loses. Always.',
     ];
-    rules.forEach((ln, i) => drawText(ctx, ln, W / 2, 192 + i * 28, { size: 15, weight: 500, color: i === 4 ? C.mustard : C.cream, align: 'center' }));
+    // staggered reveal — the rules read one at a time instead of as a wall
+    rules.forEach((ln, i) => drawText(ctx, ln, W / 2, 196 + i * 30, { size: 15, weight: 500, color: i === 4 ? C.mustard : C.cream, align: 'center', alpha: intro(this.t, 0.15 + i * 0.08) }));
 
+    const tagsA = intro(this.t, 0.6);
     Object.keys(TAGS).forEach((t, i) => {
       const x = W / 2 - 270 + i * 180;
-      stamp(ctx, t.toUpperCase(), x, 360, { size: 15, bg: TAGS[t].color, rot: i % 2 ? 0.06 : -0.06 });
-      drawTagIcon(ctx, t, x - 0, 392, 11, TAGS[t].color);
+      ctx.save();
+      ctx.globalAlpha *= tagsA;
+      stamp(ctx, t.toUpperCase(), x, 366, { size: 15, bg: TAGS[t].color, rot: i % 2 ? 0.06 : -0.06 });
+      drawTagIcon(ctx, t, x - 0, 398, 11, TAGS[t].color);
+      ctx.restore();
     });
 
-    drawText(ctx, '←/→ OR MOUSE PICK   ·   ENTER OR CLICK PLAY   ·   1-4 QUICK-PLAY   ·   H HINT   ·   M MUTE   ·   P PAUSE', W / 2, 420, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 2 });
-    if (this.blink()) drawText(ctx, 'ENTER → MEET YOUR FIRST GUEST', W / 2, 458, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 3 });
+    const controls = this.game.touch
+      ? 'TAP A CARD TO PLAY   ·   DRAG TO REARRANGE   ·   TAP HINT FOR HELP'
+      : '←/→ OR MOUSE PICK   ·   ENTER OR CLICK PLAY   ·   1-4 QUICK-PLAY   ·   H HINT   ·   M MUTE   ·   P PAUSE';
+    drawText(ctx, controls, W / 2, 426, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 2, alpha: intro(this.t, 0.8) });
+    const go = this.game.touch ? 'TAP' : 'ENTER';
+    if (this.blink()) drawText(ctx, `${go} → MEET YOUR FIRST GUEST`, W / 2, 460, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 3 });
   }
 }

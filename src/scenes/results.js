@@ -1,5 +1,5 @@
 import { drawText, rect, measure } from '../util.js';
-import { C, easeOutBack, easeOutExpo, sparkle, stamp } from '../theme.js';
+import { C, easeOutBack, easeOutExpo, sparkle, stamp, intro } from '../theme.js';
 import { clamp } from '../util.js';
 
 // Shared end-of-level star ceremony (Levels 1 & 2 — The Pitch has its own).
@@ -63,35 +63,46 @@ export class Ceremony {
   draw(ctx) {
     const W = 960, H = 540;
     rect(ctx, 0, 0, W, H, C.ink);
-    drawText(ctx, this.label, W / 2, 72, { size: 11, weight: 700, color: C.mustard, align: 'center', spacing: 5 });
-    drawText(ctx, 'SHIFT COMPLETE', W / 2, 104, { font: 'display', size: 80, color: C.cream, align: 'center', spacing: 3 });
+
+    // The Ceremony assembles in a calm cadence: eyebrow, then headline drop in,
+    // then the stars count up, then the score, then the supporting lines. Each
+    // text element eases in with a small slide so nothing pops fully formed.
+    const aEyebrow = intro(this.t, 0.0);
+    drawText(ctx, this.label, W / 2, 68 + (1 - aEyebrow) * 8, { size: 11, weight: 700, color: C.mustard, align: 'center', spacing: 5, alpha: aEyebrow });
+    const aHead = intro(this.t, 0.12);
+    drawText(ctx, 'SHIFT COMPLETE', W / 2, 102 + (1 - aHead) * 12, { font: 'display', size: 80, color: C.cream, align: 'center', spacing: 3, alpha: aHead });
 
     for (let i = 0; i < 3; i++) {
       const x = W / 2 - 110 + i * 110;
       if (i < this.shown) {
         const st = clamp((this.t - 0.6 - i * 0.55) / 0.3, 0, 1);
         const s = 1 + (1 - easeOutBack(st)) * 1.4;
-        sparkle(ctx, x, 252, 38 * s, C.mustard, { rot: 0.2 - st * 0.2 });
+        sparkle(ctx, x, 256, 38 * s, C.mustard, { rot: 0.2 - st * 0.2 });
       } else {
-        sparkle(ctx, x, 252, 30, '#241f2b');
+        sparkle(ctx, x, 256, 30, '#241f2b');
       }
     }
 
     const reveal = easeOutExpo(clamp((this.t - 0.25) / 1.0, 0, 1));
     const scoreText = `SCORE  ${Math.round(this.score * reveal)}`;
-    drawText(ctx, scoreText, W / 2, 322, { font: 'display', size: 40, color: C.cream, align: 'center', spacing: 2 });
+    drawText(ctx, scoreText, W / 2, 330, { font: 'display', size: 40, color: C.cream, align: 'center', spacing: 2 });
     if (this.newBest && this.t > 1.3) {
       // anchor the stamp to the (final) score's right edge so it tracks any width
       const finalScore = `SCORE  ${this.score}`;
       const scoreRight = W / 2 + measure(ctx, finalScore, { font: 'display', size: 40, spacing: 2 }) / 2;
       const stampHalfW = (measure(ctx, 'NEW BEST!', { font: 'display', size: 15, spacing: 1 }) + 18) / 2;
-      stamp(ctx, 'NEW BEST!', scoreRight + 18 + stampHalfW, 338, { size: 15, bg: C.teal, rot: 0.08 });
+      stamp(ctx, 'NEW BEST!', scoreRight + 18 + stampHalfW, 346, { size: 15, bg: C.teal, rot: 0.08 });
     }
-    drawText(ctx, `BEST ${this.best}   ·   ${this.statLine}`, W / 2, 374, { size: 12, weight: 700, color: C.faint, align: 'center', spacing: 2 });
-    if (this.hintLine) drawText(ctx, this.hintLine, W / 2, 398, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 1 });
+    // supporting lines arrive only after the count-up settles, with room to breathe
+    const aStat = intro(this.t, 1.2);
+    drawText(ctx, `BEST ${this.best}   ·   ${this.statLine}`, W / 2, 388 + (1 - aStat) * 6, { size: 12, weight: 700, color: C.faint, align: 'center', spacing: 2, alpha: aStat });
+    if (this.hintLine) {
+      const aHint = intro(this.t, 1.34);
+      drawText(ctx, this.hintLine, W / 2, 414 + (1 - aHint) * 6, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 1, alpha: aHint });
+    }
 
     if (Math.sin(this.t * 5.5) > -0.25 && this.t > 0.6 + this.stars * 0.55 + 0.3) {
-      drawText(ctx, this.nextLabel, W / 2, 442, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
+      drawText(ctx, this.nextLabel, W / 2, 454, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
     }
     for (const p of this.confetti) {
       sparkle(ctx, p.x, p.y, p.r * (1 - p.life / p.max), p.color, { rot: p.rot, alpha: 1 - p.life / p.max });

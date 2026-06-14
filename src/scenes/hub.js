@@ -1,5 +1,5 @@
 import { drawText, wrap, rect, frame, pointIn } from '../util.js';
-import { C, bokehBg, easeOutExpo, halftone, motes, panel, sparkle, stamp } from '../theme.js';
+import { C, bokehBg, easeOutExpo, halftone, motes, panel, sparkle, stamp, intro } from '../theme.js';
 import { PLAYER_NAME } from '../config.js';
 
 const W = 960, H = 540;
@@ -12,6 +12,10 @@ const LEVELS = [
 ];
 
 const PROMO = { x: 48, y: 452, w: 560, h: 40 };
+// Touch-only affordance: a tappable Guest Book chip in the bottom-right corner
+// (keyboard users get 'G'). Kept clear of the centered footer line and the
+// stars track above it.
+const BOOK_BTN = { x: 786, y: 498, w: 150, h: 26 };
 
 // Poster silhouettes — flat ink shapes on the accent block, all original.
 function silhouette(ctx, id, cx, cy, accent) {
@@ -79,7 +83,12 @@ export class HubScene {
     const inp = this.game.input;
     const p = inp.pointer;
 
-    if (inp.pressed.has('KeyG')) {
+    // 'G' (keyboard) or the touch chip both toggle the Guest Book. The chip is
+    // only drawn on touch, so its hotspot is touch-only — no hidden hit area on desktop.
+    const overBook = this.game.touch && !this.showBook && pointIn(p, BOOK_BTN.x, BOOK_BTN.y, BOOK_BTN.w, BOOK_BTN.h);
+    const tapBook = overBook && p.clicked;
+    if (overBook) this.game.cursor = 'pointer';
+    if (inp.pressed.has('KeyG') || tapBook) {
       this.showBook = !this.showBook;
       if (this.showBook) {
         this.game.save.data.bookSeen = this.game.save.data.guestBook.length;
@@ -141,31 +150,33 @@ export class HubScene {
     motes(ctx, this.t);
 
     // ── Masthead: rotated mustard block with offset red misprint layer
-    const intro = easeOutExpo(Math.min(1, this.t / 0.6));
+    const mastK = easeOutExpo(Math.min(1, this.t / 0.6));
     ctx.save();
     ctx.rotate(-0.045);
     ctx.shadowColor = 'rgba(0,0,0,0.65)';
     ctx.shadowBlur = 26;
     ctx.shadowOffsetY = 10;
-    rect(ctx, -36, 26, 640 * intro, 142, C.red);
+    rect(ctx, -36, 26, 640 * mastK, 142, C.red);
     ctx.shadowColor = 'transparent';
-    rect(ctx, -44, 14, 640 * intro, 142, C.mustard);
+    rect(ctx, -44, 14, 640 * mastK, 142, C.mustard);
     ctx.save();
     ctx.globalAlpha = 0.16;
     ctx.fillStyle = halftone(ctx);
     ctx.fillRect(330, 14, 230, 142);
     ctx.restore();
-    if (intro > 0.85) drawText(ctx, 'BELL TO SELL', 34, 26, { font: 'display', size: 104, color: C.ink, spacing: 3 });
+    if (mastK > 0.85) drawText(ctx, 'BELL TO SELL', 34, 26, { font: 'display', size: 104, color: C.ink, spacing: 3 });
     ctx.restore();
 
+    const aEyebrow = intro(this.t, 0.18);
     drawText(ctx, golden
       ? 'CAREER COMPLETE — EVERY SHIFT IS YOURS TO REPLAY. CHASE 9 STARS.'
-      : 'THE CASE FOR A PROMOTION — THREE SHIFTS, LEFT TO RIGHT', 48, 164, { size: 11, weight: 700, color: golden ? C.mustard : C.dim, spacing: 4 });
+      : 'THE CASE FOR A PROMOTION — THREE SHIFTS, LEFT TO RIGHT', 48, 164 + (1 - aEyebrow) * 6, { size: 11, weight: 700, color: golden ? C.mustard : C.dim, spacing: 4, alpha: aEyebrow });
 
     drawText(ctx, `${sv.tips}`, 924, 16, { font: 'display', size: 44, color: C.mustard, align: 'right' });
     drawText(ctx, 'TIPS', 924, 62, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 3 });
     drawText(ctx, `${golden ? 'SALES ASSISTANT' : 'BELLMAN'} ${PLAYER_NAME.toUpperCase()}`, 924, 84, { size: 11, weight: 700, color: golden ? C.mustard : C.cream, align: 'right', spacing: 2 });
-    if (sv.guestBook.length > (sv.bookSeen || 0)) {
+    if (sv.guestBook.length > (sv.bookSeen || 0) && !this.game.touch) {
+      // keyboard nudge; on touch the corner Guest Book chip carries the new-line cue
       drawText(ctx, 'G → NEW LINE IN YOUR GUEST BOOK', 924, 106, { size: 10, weight: 700, color: C.teal, align: 'right', spacing: 2, alpha: 0.6 + 0.4 * Math.sin(this.t * 4) });
     }
 
@@ -173,11 +184,14 @@ export class HubScene {
     LEVELS.forEach((l, i) => {
       const isSel = i === this.sel;
       const open = this.isOpen(i);
+      // staggered entrance: posters ease up left-to-right so the wall assembles
+      const aIn = intro(this.t, 0.28 + i * 0.1);
       ctx.save();
+      ctx.globalAlpha *= aIn;
       // posters breathe a little, like a wall of prints in a draft — but only
       // the selected one carries real motion, so the eye follows the CTA
       const bob = Math.sin(this.t * 1.3 + i * 1.9) * (isSel ? 2.5 : 1.25);
-      ctx.translate(l.x + l.w / 2, l.y + l.h / 2 - (isSel ? 8 : 0) + bob);
+      ctx.translate(l.x + l.w / 2, l.y + l.h / 2 - (isSel ? 8 : 0) + bob + (1 - aIn) * 26);
       ctx.rotate(l.tilt + Math.sin(this.t * 0.9 + i * 2.3) * (isSel ? 0.004 : 0.002));
       if (isSel) ctx.scale(1.03, 1.03);
       const x = -l.w / 2, y = -l.h / 2;
@@ -216,13 +230,17 @@ export class HubScene {
       ctx.restore();
     });
 
-    // ── Promotion: banner once the career is complete, progress track always
+    // ── Promotion: banner once the career is complete, progress track always.
+    // The whole bottom band eases in just after the last poster has landed.
     const total = this.game.save.totalStars();
+    const aBand = intro(this.t, 0.62);
+    ctx.save();
+    ctx.globalAlpha *= aBand;
     if (this.allDone()) {
       const selBanner = this.sel === LEVELS.length;
       rect(ctx, PROMO.x, PROMO.y, PROMO.w, PROMO.h, C.mustard);
       ctx.save();
-      ctx.globalAlpha = 0.14;
+      ctx.globalAlpha *= 0.14;
       ctx.fillStyle = halftone(ctx);
       ctx.fillRect(PROMO.x + PROMO.w / 2, PROMO.y, PROMO.w / 2, PROMO.h);
       ctx.restore();
@@ -240,10 +258,13 @@ export class HubScene {
       if (i < total) sparkle(ctx, x + 9, 463, 7, C.mustard);
     }
     drawText(ctx, `${total}/9 — STARS ARE YOUR HIGH-SCORE CHASE`, 690, 478, { size: 9, weight: 700, color: C.faint, spacing: 1 });
+    ctx.restore();
 
     // one pulsing CTA per decision point: when the PROMO banner is the live
-    // choice, IT is the CTA — suppress the bottom ribbon so only one pulses
+    // choice, IT is the CTA — suppress the bottom ribbon so only one pulses.
+    // The ribbon eases in last, after the band, so it reads as the focal arrival.
     const bannerIsCTA = this.allDone() && this.sel === LEVELS.length;
+    const aCTA = intro(this.t, 0.74);
     if (this.toast) {
       stamp(ctx, this.toast.text, W / 2, 434, { size: 18, bg: C.mustard, rot: -0.04 });
     } else if (!bannerIsCTA && this.sel < LEVELS.length) {
@@ -254,13 +275,21 @@ export class HubScene {
       const label = open
         ? `ENTER → ${sv.stars[l.id] > 0 ? 'REPLAY' : 'CLOCK IN'}: ${l.name}`
         : `FINISH SHIFT ${LEVELS[this.sel - 1].num} TO UNLOCK ${l.name}`;
-      rect(ctx, 0, 418, W, 32, C.ink, 0.78);
-      rect(ctx, 0, 418, W, 1, C.edge, 0.6);
-      rect(ctx, 0, 449, W, 1, C.edge, 0.6);
-      drawText(ctx, label, W / 2, 425, { font: 'display', size: 21, color: open ? C.mustard : C.faint, align: 'center', spacing: 2, alpha: 0.65 + 0.35 * Math.sin(this.t * 4.5) });
+      rect(ctx, 0, 418, W, 32, C.ink, 0.78 * aCTA);
+      rect(ctx, 0, 418, W, 1, C.edge, 0.6 * aCTA);
+      rect(ctx, 0, 449, W, 1, C.edge, 0.6 * aCTA);
+      drawText(ctx, label, W / 2, 425, { font: 'display', size: 21, color: open ? C.mustard : C.faint, align: 'center', spacing: 2, alpha: aCTA * (0.65 + 0.35 * Math.sin(this.t * 4.5)) });
     }
 
-    drawText(ctx, `←/→ CHOOSE   ·   ENTER WALK IN   ·   G GUEST BOOK (${sv.guestBook.length})`, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
+    // Footer: keyboard users see the key map; touch users get a tappable chip
+    // for the Guest Book (the only hub action with no existing tap path).
+    const aFoot = intro(this.t, 0.84);
+    if (this.game.touch) {
+      drawText(ctx, `←/→ CHOOSE   ·   TAP A POSTER TO ENTER`, W / 2 - 88, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2, alpha: aFoot });
+      this.drawBookButton(ctx, sv.guestBook.length, aFoot);
+    } else {
+      drawText(ctx, `←/→ CHOOSE   ·   ENTER WALK IN   ·   G GUEST BOOK (${sv.guestBook.length})`, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2, alpha: aFoot });
+    }
 
     if (golden) {
       // thin gold proscenium — the quiet "you did it" frame around every replay
@@ -271,6 +300,20 @@ export class HubScene {
     }
 
     if (this.showBook) this.drawBook(ctx);
+  }
+
+  // Touch-only Guest Book chip (keyboard users press 'G'). A compact tappable
+  // button so touch players can open the book; a teal pip flags unseen lines.
+  drawBookButton(ctx, count, alpha = 1) {
+    const sv = this.game.save.data;
+    const hasNew = sv.guestBook.length > (sv.bookSeen || 0);
+    const b = BOOK_BTN;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    panel(ctx, b.x, b.y, b.w, b.h, { border: hasNew ? C.teal : C.edge, borderW: 1, shadow: false, r: 4 });
+    sparkle(ctx, b.x + 16, b.y + b.h / 2, 6, hasNew ? C.teal : C.mustard);
+    drawText(ctx, `GUEST BOOK (${count})`, b.x + 30, b.y + 8, { size: 10, weight: 700, color: hasNew ? C.teal : C.dim, spacing: 1, alpha: hasNew ? 0.7 + 0.3 * Math.sin(this.t * 4) : 1 });
+    ctx.restore();
   }
 
   drawBook(ctx) {
@@ -297,6 +340,6 @@ export class HubScene {
         y += 44 + Math.min(lines.length, 2) * 20 + 14;
       }
     }
-    drawText(ctx, 'G → CLOSE', 480, 452, { size: 11, weight: 700, color: '#6b6357', align: 'center', spacing: 3 });
+    drawText(ctx, this.game.touch ? 'TAP TO CLOSE' : 'G → CLOSE', 480, 452, { size: 11, weight: 700, color: '#6b6357', align: 'center', spacing: 3 });
   }
 }

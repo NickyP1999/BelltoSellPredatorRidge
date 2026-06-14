@@ -1,5 +1,5 @@
 import { drawText, rect, frame, clamp } from '../util.js';
-import { C, easeOutExpo, easeOutBack, halftone, sparkle, stamp } from '../theme.js';
+import { C, easeOutExpo, easeOutBack, halftone, sparkle, stamp, intro } from '../theme.js';
 import { Ceremony } from './results.js';
 
 const W = 960, H = 540;
@@ -7,6 +7,13 @@ const ACCENT = '#d94f30';
 const CART_SX = 300;   // the cart holds this screen x; the world scrolls past
 const FLOOR = 430;
 const LEAN_LIMIT = 0.6;
+
+// On-screen hold-buttons for touch devices. Tucked into the bottom corners so
+// they clear the cart (screen x 300), the bag drops, the hazards, and the HUD.
+// Drawn ONLY when game.touch — keyboard/mouse users never see them.
+const BTN = 84, BTN_PAD = 24;
+const BTN_L = { x: BTN_PAD, y: H - BTN - BTN_PAD, w: BTN, h: BTN };
+const BTN_R = { x: W - BTN - BTN_PAD, y: H - BTN - BTN_PAD, w: BTN, h: BTN };
 
 // ── leg 1: the lobby
 const WORLD = 2600;
@@ -57,6 +64,8 @@ export class LuggageScene {
     this.rushed = false;
     this.dropForgiven = false;
     this.leanWarned = false;
+    this.leanShown = 0;   // eased needle position — glides toward the real lean
+    this.legT = 0;        // leg-local clock, drives the staggered HUD entrance
   }
 
   resetRun() {
@@ -70,6 +79,8 @@ export class LuggageScene {
     this.speedWarned = false;
     this.lateFinish = false;
     this.stack = this.bagsAtRun.slice();
+    this.vShown = 0;   // eased speed bar — glides toward the real velocity
+    this.legT = 0;     // leg-local clock, drives the staggered HUD entrance
   }
 
   burst(x, y, color, n = 10) {
@@ -125,6 +136,7 @@ export class LuggageScene {
   }
 
   update(dt) {
+    this._dt = dt;   // remembered for frame-rate-independent meter easing in draw()
     this.tAll += dt;
     this.t += dt;
     this.shake = Math.max(0, this.shake - dt * 1.8);
@@ -169,6 +181,7 @@ export class LuggageScene {
 
     // ── leg 1: the lobby. Out of time never strands you — the cart simply
     // leaves now, with whatever you caught.
+    this.legT += dt;
     this.timeLeft -= dt;
     if (this.timeLeft <= 0) {
       this.timeBank = 0;
@@ -180,8 +193,9 @@ export class LuggageScene {
       return;
     }
 
-    const right = inp.down.has('ArrowRight') || inp.down.has('KeyD');
-    const left = inp.down.has('ArrowLeft') || inp.down.has('KeyA');
+    // ROLL/BRAKE: keyboard OR the on-screen touch buttons (bottom corners).
+    const right = inp.down.has('ArrowRight') || inp.down.has('KeyD') || inp.touchInRect(BTN_R.x, BTN_R.y, BTN_R.w, BTN_R.h);
+    const left = inp.down.has('ArrowLeft') || inp.down.has('KeyA') || inp.touchInRect(BTN_L.x, BTN_L.y, BTN_L.w, BTN_L.h);
     const prevV = this.v;
     let a = 0;
     if (right) a += 300;
@@ -283,6 +297,7 @@ export class LuggageScene {
 
   // ── leg 2: drive the NXT cart to Peregrine Cottages
   updateRun(dt, inp) {
+    this.legT += dt;
     this.timeLeft -= dt;
     if (this.timeLeft <= 0) {
       // the guests meet you on the path — deliver what you carry, no time bonus
@@ -292,8 +307,9 @@ export class LuggageScene {
     }
     this.marmotCd = Math.max(0, this.marmotCd - dt);
 
-    const right = inp.down.has('ArrowRight') || inp.down.has('KeyD');
-    const left = inp.down.has('ArrowLeft') || inp.down.has('KeyA');
+    // GO/BRAKE: keyboard OR the on-screen touch buttons (bottom corners).
+    const right = inp.down.has('ArrowRight') || inp.down.has('KeyD') || inp.touchInRect(BTN_R.x, BTN_R.y, BTN_R.w, BTN_R.h);
+    const left = inp.down.has('ArrowLeft') || inp.down.has('KeyA') || inp.touchInRect(BTN_L.x, BTN_L.y, BTN_L.w, BTN_L.h);
     if (right) this.v2 += 380 * dt;
     if (left) this.v2 -= 460 * dt;
     if (!right && !left) this.v2 -= 60 * dt;
@@ -631,29 +647,60 @@ export class LuggageScene {
     });
     ctx.restore();
 
-    // HUD
-    drawText(ctx, 'LEVEL 01 · LUGGAGE RUSH', 36, 12, { size: 10, weight: 700, color: ACCENT, spacing: 3 });
-    drawText(ctx, 'LEG 1 — THE LODGE LOBBY', 36, 24, { font: 'display', size: 30, color: C.cream, spacing: 1 });
-    drawText(ctx, 'BAGS', 36, 60, { size: 9, weight: 700, color: C.faint, spacing: 2 });
+    // ── HUD — staggered in over the first beat of the leg, three calm zones:
+    // top-left (identity + bags), top-centre (balance), top-right (timer).
+    this.leanShown += (this.lean - this.leanShown) * Math.min(1, 18 * (this._dt || 0.016));
+
+    // top-left: kebab + leg title, then a clear gap before the bag pips
+    const aTitle = intro(this.legT, 0);
+    ctx.save();
+    ctx.globalAlpha = aTitle;
+    ctx.translate(0, (1 - aTitle) * -10);
+    drawText(ctx, 'LEVEL 01 · LUGGAGE RUSH', 36, 16, { size: 10, weight: 700, color: ACCENT, spacing: 3 });
+    drawText(ctx, 'THE LODGE LOBBY', 36, 28, { font: 'display', size: 30, color: C.cream, spacing: 1 });
+    ctx.restore();
+
+    const aBags = intro(this.legT, 0.08);
+    ctx.save();
+    ctx.globalAlpha = aBags;
+    drawText(ctx, 'BAGS', 36, 72, { size: 9, weight: 700, color: C.faint, spacing: 2 });
     this.zones.forEach((z, i) => {
       const col = z.status === 'caught' ? C.mustard : z.status === 'missed' ? '#3a3342' : '#241f2b';
-      rect(ctx, 76 + i * 14, 60, 9, 9, col);
+      rect(ctx, 80 + i * 15, 71, 9, 9, col);
     });
-    drawText(ctx, String(Math.ceil(Math.max(0, this.timeLeft))), 924, 6, { font: 'display', size: 44, color: this.timeLeft < 12 ? ACCENT : C.cream, align: 'right' });
-    drawText(ctx, 'CART LEAVES IN', 924, 52, { size: 9, weight: 700, color: C.faint, align: 'right', spacing: 2 });
+    ctx.restore();
 
-    drawText(ctx, 'BALANCE', 480, 14, { size: 9, weight: 700, color: C.mustard, align: 'center', spacing: 3 });
-    rect(ctx, 360, 28, 240, 10, C.panel);
-    frame(ctx, 360, 28, 240, 10, C.edge, 1);
+    // top-right: the clock, the loudest single element — given its own corner
+    const aTime = intro(this.legT, 0.16);
+    ctx.save();
+    ctx.globalAlpha = aTime;
+    ctx.translate((1 - aTime) * 10, 0);
+    drawText(ctx, String(Math.ceil(Math.max(0, this.timeLeft))), 924, 14, { font: 'display', size: 44, color: this.timeLeft < 12 ? ACCENT : C.cream, align: 'right' });
+    drawText(ctx, 'CART LEAVES IN', 924, 60, { size: 9, weight: 700, color: C.faint, align: 'right', spacing: 2 });
+    ctx.restore();
+
+    // top-centre: the balance meter, easing toward the live lean so it glides
+    const aMeter = intro(this.legT, 0.12);
+    ctx.save();
+    ctx.globalAlpha = aMeter;
+    drawText(ctx, 'BALANCE', 480, 16, { size: 9, weight: 700, color: C.mustard, align: 'center', spacing: 3 });
+    rect(ctx, 360, 30, 240, 10, C.panel);
+    frame(ctx, 360, 30, 240, 10, C.edge, 1);
     if (Math.abs(this.lean) > LEAN_LIMIT * 0.6) {
-      frame(ctx, 357, 25, 246, 16, ACCENT, 2);
+      frame(ctx, 357, 27, 246, 16, ACCENT, 2);
     }
-    rect(ctx, 360, 28, 14, 10, ACCENT, 0.6);
-    rect(ctx, 586, 28, 14, 10, ACCENT, 0.6);
-    const needle = 480 + clamp(this.lean / LEAN_LIMIT, -1, 1) * 112;
-    rect(ctx, needle - 2, 26, 4, 14, Math.abs(this.lean) > LEAN_LIMIT * 0.7 ? ACCENT : C.cream);
+    rect(ctx, 360, 30, 14, 10, ACCENT, 0.6);
+    rect(ctx, 586, 30, 14, 10, ACCENT, 0.6);
+    const needle = 480 + clamp(this.leanShown / LEAN_LIMIT, -1, 1) * 112;
+    rect(ctx, needle - 2, 28, 4, 14, Math.abs(this.lean) > LEAN_LIMIT * 0.7 ? ACCENT : C.cream);
+    ctx.restore();
 
-    drawText(ctx, '→ ROLL · ← BRAKE · BE UNDER THE DROPS · COUNTER THE LEAN', W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
+    // bottom hint — short and spaced. On touch the buttons carry the controls,
+    // so the line drops to a one-word objective.
+    const hint = this.game.touch ? 'CATCH EVERY BAG' : '← BRAKE   ·   ROLL →   ·   COUNTER THE LEAN';
+    drawText(ctx, hint, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
+
+    this.drawTouchControls(ctx, 'BRAKE', '›', 'ROLL');
   }
 
   drawRun(ctx) {
@@ -997,45 +1044,108 @@ export class LuggageScene {
     });
     ctx.restore();
 
-    // HUD
-    drawText(ctx, 'LEVEL 01 · LUGGAGE RUSH', 36, 12, { size: 10, weight: 700, color: ACCENT, spacing: 3 });
-    drawText(ctx, 'LEG 2 — THE COTTAGE RUN', 36, 24, { font: 'display', size: 30, color: C.cream, spacing: 1 });
-    drawText(ctx, 'BAGS ABOARD', 36, 60, { size: 9, weight: 700, color: C.faint, spacing: 2 });
-    for (let i = 0; i < 8; i++) {
-      rect(ctx, 126 + i * 14, 60, 9, 9, i < this.stack.length ? C.mustard : '#241f2b');
-    }
-    drawText(ctx, String(Math.ceil(Math.max(0, this.timeLeft))), 924, 6, { font: 'display', size: 44, color: this.timeLeft < 10 ? ACCENT : C.cream, align: 'right' });
-    drawText(ctx, 'GUESTS ARRIVE IN', 924, 52, { size: 9, weight: 700, color: C.faint, align: 'right', spacing: 2 });
-
-    // speed readout — red when bump-unsafe. Real calibration: the NXT tops out
-    // at 24 km/h, so full bar (360 units) = 24 and the safe line sits near 14.
+    // ── HUD — same three calm zones as leg 1, staggered in over the first beat.
+    this.vShown += (this.v2 - this.vShown) * Math.min(1, 14 * (this._dt || 0.016));
     const unsafe = this.v2 > RUN.safeV;
-    drawText(ctx, 'SPEED', 480, 14, { size: 9, weight: 700, color: unsafe ? ACCENT : C.mustard, align: 'center', spacing: 3 });
-    rect(ctx, 360, 28, 240, 10, C.panel);
-    frame(ctx, 360, 28, 240, 10, C.edge, 1);
-    rect(ctx, 362, 30, clamp(this.v2 / 360, 0, 1) * 236, 6, unsafe ? ACCENT : C.teal);
-    rect(ctx, 360 + (RUN.safeV / 360) * 240 - 1, 26, 2, 14, C.cream, 0.7);
-    drawText(ctx, `${Math.round(this.v2 / 15)}`, 610, 25, { font: 'display', size: 19, color: unsafe ? ACCENT : C.cream });
-    drawText(ctx, 'KM/H · MAX 24', 610, 44, { size: 7.5, weight: 700, color: C.faint, spacing: 1 });
 
-    drawText(ctx, '→ GO · ← BRAKE · SLOW OVER BUMPS — FAST LAUNCHES BAGS', W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
+    // top-left: kebab + leg title, gap, then the bag pips
+    const aTitle = intro(this.legT, 0);
+    ctx.save();
+    ctx.globalAlpha = aTitle;
+    ctx.translate(0, (1 - aTitle) * -10);
+    drawText(ctx, 'LEVEL 01 · LUGGAGE RUSH', 36, 16, { size: 10, weight: 700, color: ACCENT, spacing: 3 });
+    drawText(ctx, 'THE COTTAGE RUN', 36, 28, { font: 'display', size: 30, color: C.cream, spacing: 1 });
+    ctx.restore();
+
+    const aBags = intro(this.legT, 0.08);
+    ctx.save();
+    ctx.globalAlpha = aBags;
+    drawText(ctx, 'BAGS ABOARD', 36, 72, { size: 9, weight: 700, color: C.faint, spacing: 2 });
+    for (let i = 0; i < 8; i++) {
+      rect(ctx, 130 + i * 15, 71, 9, 9, i < this.stack.length ? C.mustard : '#241f2b');
+    }
+    ctx.restore();
+
+    // top-right: the clock
+    const aTime = intro(this.legT, 0.16);
+    ctx.save();
+    ctx.globalAlpha = aTime;
+    ctx.translate((1 - aTime) * 10, 0);
+    drawText(ctx, String(Math.ceil(Math.max(0, this.timeLeft))), 924, 14, { font: 'display', size: 44, color: this.timeLeft < 10 ? ACCENT : C.cream, align: 'right' });
+    drawText(ctx, 'GUESTS ARRIVE IN', 924, 60, { size: 9, weight: 700, color: C.faint, align: 'right', spacing: 2 });
+    ctx.restore();
+
+    // top-centre: speed meter easing toward the live velocity, with the safe
+    // line and a km/h readout tucked clear to the right. Real calibration: the
+    // NXT tops out at 24 km/h, so full bar (360 units) = 24, safe line near 14.
+    const aMeter = intro(this.legT, 0.12);
+    ctx.save();
+    ctx.globalAlpha = aMeter;
+    drawText(ctx, 'SPEED', 466, 16, { size: 9, weight: 700, color: unsafe ? ACCENT : C.mustard, align: 'center', spacing: 3 });
+    rect(ctx, 346, 30, 240, 10, C.panel);
+    frame(ctx, 346, 30, 240, 10, C.edge, 1);
+    rect(ctx, 348, 32, clamp(this.vShown / 360, 0, 1) * 236, 6, unsafe ? ACCENT : C.teal);
+    rect(ctx, 346 + (RUN.safeV / 360) * 240 - 1, 28, 2, 14, C.cream, 0.7);
+    drawText(ctx, `${Math.round(this.v2 / 15)}`, 602, 26, { font: 'display', size: 22, color: unsafe ? ACCENT : C.cream });
+    drawText(ctx, 'KM/H · MAX 24', 602, 47, { size: 7.5, weight: 700, color: C.faint, spacing: 1 });
+    ctx.restore();
+
+    // bottom hint — short and spaced; touch buttons carry the controls.
+    const hint = this.game.touch ? 'SLOW OVER THE BUMPS' : '← BRAKE   ·   GO →   ·   SLOW OVER BUMPS';
+    drawText(ctx, hint, W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
+
+    this.drawTouchControls(ctx, 'BRAKE', '›', 'GO');
   }
 
   drawHandoff(ctx) {
     rect(ctx, 0, 0, W, H, C.ink, 0.88);
     const k = easeOutBack(clamp(this.t / 0.3, 0, 1));
     ctx.save();
-    ctx.translate(W / 2, 190);
+    ctx.translate(W / 2, 196);
     ctx.scale(k, k);
     drawText(ctx, this.rushed ? 'CUTTING IT CLOSE.' : 'LOBBY CLEARED.', 0, -46, { font: 'display', size: 76, color: C.cream, align: 'center', shadow: { color: ACCENT, dx: 5, dy: 5 } });
     ctx.restore();
-    drawText(ctx, `${this.stack.length}/8 BAGS — NOW LOAD THE PORSCHE NXT CART`, W / 2, 250, { size: 13, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
-    drawText(ctx, 'LEG 2: RUN THE BAGS OUT TO PEREGRINE COTTAGES.', W / 2, 282, { size: 12, weight: 500, color: C.dim, align: 'center' });
-    drawText(ctx, 'THE BOX BOUNCES — SLOW OVER BUMPS OR BAGS GO OVERBOARD.', W / 2, 302, { size: 12, weight: 500, color: C.dim, align: 'center' });
-    if (this.blinkOk()) drawText(ctx, 'ENTER → TAKE THE WHEEL', W / 2, 360, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 2 });
+    // one focal headline, one count line, one objective — generously spaced.
+    const a1 = intro(this.t, 0.18);
+    drawText(ctx, `${this.stack.length}/8 BAGS ABOARD — LOAD THE PORSCHE NXT`, W / 2, 262, { size: 13, weight: 700, color: C.mustard, align: 'center', spacing: 2, alpha: a1 });
+    const a2 = intro(this.t, 0.30);
+    drawText(ctx, 'RUN THEM OUT TO PEREGRINE COTTAGES — SLOW OVER THE BUMPS', W / 2, 300, { size: 12, weight: 500, color: C.dim, align: 'center', alpha: a2 });
+    if (this.blinkOk()) drawText(ctx, this.game.touch ? 'TAP → TAKE THE WHEEL' : 'ENTER → TAKE THE WHEEL', W / 2, 366, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 2 });
   }
 
   blinkOk() { return Math.sin(this.tAll * 5.5) > -0.25; }
+
+  // One minimalistic jazz-noir hold-button: ink fill, accent ring that lights up
+  // while held, a glyph + short label. Large (84px) and semi-transparent so it
+  // reads as tappable without covering the play field.
+  touchBtn(ctx, b, glyph, label, accent) {
+    const inp = this.game.input;
+    const held = inp.touchInRect(b.x, b.y, b.w, b.h);
+    ctx.save();
+    // ink pad
+    ctx.globalAlpha = held ? 0.9 : 0.66;
+    ctx.fillStyle = C.ink;
+    ctx.beginPath();
+    ctx.roundRect(b.x, b.y, b.w, b.h, 16);
+    ctx.fill();
+    // accent ring — brightens and thickens on press
+    ctx.globalAlpha = held ? 1 : 0.8;
+    ctx.strokeStyle = accent;
+    ctx.lineWidth = held ? 3 : 2;
+    ctx.beginPath();
+    ctx.roundRect(b.x + 1.5, b.y + 1.5, b.w - 3, b.h - 3, 14);
+    ctx.stroke();
+    ctx.restore();
+    const cx = b.x + b.w / 2;
+    drawText(ctx, glyph, cx, b.y + 16, { font: 'display', size: 40, color: accent, align: 'center', alpha: held ? 1 : 0.92 });
+    drawText(ctx, label, cx, b.y + b.h - 18, { size: 9, weight: 700, color: C.cream, align: 'center', spacing: 2, alpha: held ? 0.95 : 0.7 });
+  }
+
+  drawTouchControls(ctx, leftLabel, rightGlyph, rightLabel) {
+    if (!this.game.touch) return;
+    this.touchBtn(ctx, BTN_L, '‹', leftLabel, C.teal);
+    this.touchBtn(ctx, BTN_R, rightGlyph, rightLabel, C.mustard);
+  }
 
   drawIntro(ctx) {
     const t = this.t;
@@ -1064,19 +1174,26 @@ export class LuggageScene {
 
   drawHowTo(ctx) {
     rect(ctx, 0, 0, W, H, C.ink);
-    rect(ctx, 0, 60, W, 4, ACCENT);
-    drawText(ctx, 'LEVEL 01', W / 2, 84, { size: 11, weight: 700, color: ACCENT, align: 'center', spacing: 5 });
-    drawText(ctx, 'HOW TO PLAY — LUGGAGE RUSH', W / 2, 98, { font: 'display', size: 58, color: C.cream, align: 'center', spacing: 2 });
+    rect(ctx, 0, 66, W, 4, ACCENT);
+    drawText(ctx, 'LEVEL 01', W / 2, 94, { size: 11, weight: 700, color: ACCENT, align: 'center', spacing: 5 });
+    drawText(ctx, 'HOW TO PLAY — LUGGAGE RUSH', W / 2, 110, { font: 'display', size: 52, color: C.cream, align: 'center', spacing: 2 });
     const rules = [
       'LEG 1 — the lobby. Bags drop from the rail: be UNDER them.',
-      'Off-centre catches tip the stack. Counter the lean:',
-      'leaning forward → speed up. Leaning back → ease off.',
-      'LEG 2 — load the Porsche NXT cart and run for the cottages.',
+      'Off-centre catches tip the stack — counter the lean.',
+      'Leaning forward, speed up; leaning back, ease off.',
+      'LEG 2 — load the Porsche NXT and run for the cottages.',
       'The box bounces. Slow over bumps or bags go overboard.',
       'Deliver every bag. The marmot has right of way.',
     ];
-    rules.forEach((ln, i) => drawText(ctx, ln, W / 2, 186 + i * 26, { size: 15, weight: 500, color: i === 5 ? C.mustard : C.cream, align: 'center' }));
-    drawText(ctx, '→ / D ROLL   ·   ← / A BRAKE   ·   M MUTE   ·   P PAUSE', W / 2, 380, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 2 });
-    if (this.blinkOk()) drawText(ctx, 'ENTER → CLOCK IN', W / 2, 430, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 3 });
+    // staggered reveal, each line given real breathing room (34px lead)
+    rules.forEach((ln, i) => {
+      const a = intro(this.t, 0.1 + i * 0.05);
+      drawText(ctx, ln, W / 2, 212 + i * 34, { size: 15, weight: 500, color: i === 5 ? C.mustard : C.cream, align: 'center', alpha: a });
+    });
+    const controls = this.game.touch
+      ? 'HOLD THE ON-SCREEN BRAKE / GO PADS'
+      : '→ / D ROLL   ·   ← / A BRAKE   ·   M MUTE   ·   P PAUSE';
+    drawText(ctx, controls, W / 2, 422, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 2 });
+    if (this.blinkOk()) drawText(ctx, this.game.touch ? 'TAP → CLOCK IN' : 'ENTER → CLOCK IN', W / 2, 470, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 3 });
   }
 }

@@ -1,11 +1,23 @@
-import { drawText, rect, frame, clamp, lerp } from '../util.js';
-import { C, easeOutExpo, easeOutBack, halftone, sparkle, stamp } from '../theme.js';
+import { drawText, rect, frame, clamp, lerp, pointIn } from '../util.js';
+import { C, easeOutExpo, easeOutBack, intro, halftone, sparkle, stamp } from '../theme.js';
 import { Ceremony } from './results.js';
 
 const W = 960, H = 540;
 const ACCENT = '#3fb8a8';
 const CAR = { len: 92, wid: 42, wheelbase: 58 };
 const WALL_Y = 110;
+
+// On-screen touch controls (only drawn/active when game.touch). Logical coords.
+// Placed low in the side gutters so they clear the bay (top-right), the car's
+// left-to-right path, and the wandering hazards in the lot's middle band.
+// Steer cluster bottom-left, throttle cluster bottom-right, PARK centred.
+const BTN = 84;                      // square button edge (>=72px touch target)
+const BTN_Y = H - BTN - 20;          // shared top edge, 20px off the bottom
+const BTN_LEFT = { x: 24, y: BTN_Y, w: BTN, h: BTN };
+const BTN_RIGHT = { x: 24 + BTN + 12, y: BTN_Y, w: BTN, h: BTN };
+const BTN_REV = { x: W - 24 - BTN * 2 - 12, y: BTN_Y, w: BTN, h: BTN };
+const BTN_GAS = { x: W - 24 - BTN, y: BTN_Y, w: BTN, h: BTN };
+const BTN_PARK = { x: W / 2 - 70, y: H - 66, w: 140, h: 46 };
 
 // Real shuttle stops, tightest bay last. (No valet exists at Predator Ridge —
 // bellmen shuttle; the skill is backing the Yukon XL into tight spots.)
@@ -84,6 +96,12 @@ export class ValetScene {
     this.flash = 0;
     this.splash = null;
     this.notice = null;
+    // Eased display values so the in-bay readout and bay-line emphasis glide
+    // instead of jittering frame-to-frame. tEnter drives the HUD intro stagger.
+    this.tEnter = 0;
+    this.dispAngle = 0;
+    this.dispOff = 0;
+    this.alignMix = 0; // 0..1 lerp toward 1 while fully inside the bay
   }
 
   say(text, color = C.mustard) { this.notice = { text, color, t: 1.4 }; }
@@ -221,12 +239,17 @@ export class ValetScene {
 
     // ── play
     this.elapsed += dt;
+    this.tEnter += dt;
     this.autoBrakeT = Math.max(0, this.autoBrakeT - dt);
 
-    const left = inp.down.has('ArrowLeft') || inp.down.has('KeyA');
-    const right = inp.down.has('ArrowRight') || inp.down.has('KeyD');
-    const fwd = inp.down.has('ArrowUp') || inp.down.has('KeyW');
-    const rev = inp.down.has('ArrowDown') || inp.down.has('KeyS');
+    // On touch devices the on-screen hold-buttons OR into the keyboard reads, so
+    // a finger on STEER and a finger on GAS register at once (multi-touch via
+    // touchInRect). On keyboard/mouse the touch terms are always false.
+    const t = this.game.touch;
+    const left = inp.down.has('ArrowLeft') || inp.down.has('KeyA') || (t && inp.touchInRect(BTN_LEFT.x, BTN_LEFT.y, BTN_LEFT.w, BTN_LEFT.h));
+    const right = inp.down.has('ArrowRight') || inp.down.has('KeyD') || (t && inp.touchInRect(BTN_RIGHT.x, BTN_RIGHT.y, BTN_RIGHT.w, BTN_RIGHT.h));
+    const fwd = inp.down.has('ArrowUp') || inp.down.has('KeyW') || (t && inp.touchInRect(BTN_GAS.x, BTN_GAS.y, BTN_GAS.w, BTN_GAS.h));
+    const rev = inp.down.has('ArrowDown') || inp.down.has('KeyS') || (t && inp.touchInRect(BTN_REV.x, BTN_REV.y, BTN_REV.w, BTN_REV.h));
 
     this.steer = lerp(this.steer, ((right ? 1 : 0) - (left ? 1 : 0)) * 0.52, Math.min(1, dt * 6));
     // Heavy-vehicle feel: forward pulls harder than reverse (backing in is the
@@ -336,7 +359,24 @@ export class ValetScene {
     if (!Number.isFinite(this.th)) this.th = pth;
     if (!Number.isFinite(this.x) || !Number.isFinite(this.y)) { this.x = px; this.y = py; }
 
-    if (inp.pressed.has('Space')) this.tryPark();
+    // Ease the live readout + bay-line emphasis toward their true values so the
+    // numbers and the teal alignment glow glide instead of snapping each frame.
+    const st = stallRect(this.round);
+    let errDeg = (this.th - Math.PI / 2) * 180 / Math.PI;
+    while (errDeg > 180) errDeg -= 360;
+    while (errDeg < -180) errDeg += 360;
+    const kEase = Math.min(1, dt * 9);
+    this.dispAngle = lerp(this.dispAngle, Math.abs(errDeg), kEase);
+    this.dispOff = lerp(this.dispOff, Math.abs(this.x - (st.x + st.w / 2)), kEase);
+    this.alignMix = lerp(this.alignMix, this.inStall() ? 1 : 0, Math.min(1, dt * 8));
+    if (!Number.isFinite(this.dispAngle)) this.dispAngle = 0;
+    if (!Number.isFinite(this.dispOff)) this.dispOff = 0;
+    if (!Number.isFinite(this.alignMix)) this.alignMix = 0;
+
+    // PARK: Space (edge) OR a tap on the on-screen PARK button (touch only).
+    const parkTap = this.game.touch && inp.pointer.clicked &&
+      pointIn(inp.pointer, BTN_PARK.x, BTN_PARK.y, BTN_PARK.w, BTN_PARK.h);
+    if (inp.pressed.has('Space') || parkTap) this.tryPark();
   }
 
   // Bake the static ground + building-front layer for a round into one
@@ -441,20 +481,23 @@ export class ValetScene {
     if (!this._groundCache[this.round]) this._groundCache[this.round] = this.buildGround(this.round);
     ctx.drawImage(this._groundCache[this.round], 0, 0);
 
-    // the stall
+    // the stall — bay lines glide from cream toward teal as alignMix → 1, so the
+    // "you're lined up" cue eases in rather than snapping when inStall flips.
     const st = stallRect(this.round);
     const inside = this.inStall();
+    const mix = this.alignMix;       // 0 = not aligned, 1 = fully in the bay
+    const lineCol = mix > 0.5 ? ACCENT : C.cream;
     ctx.save();
-    ctx.strokeStyle = inside ? ACCENT : C.cream;
-    ctx.globalAlpha = inside ? 0.95 : 0.5;
+    ctx.strokeStyle = lineCol;
+    ctx.globalAlpha = lerp(0.5, 0.95, mix);
     ctx.setLineDash([10, 7]);
     ctx.lineWidth = 3;
     ctx.strokeRect(st.x, st.y, st.w, st.h);
     ctx.restore();
-    rect(ctx, st.x + st.w / 2 - 1, st.y + 10, 2, st.h - 20, inside ? ACCENT : C.cream, 0.2);
+    rect(ctx, st.x + st.w / 2 - 1, st.y + 10, 2, st.h - 20, lineCol, 0.2 + mix * 0.18);
     // painted corner brackets
     ctx.save();
-    ctx.strokeStyle = inside ? ACCENT : C.cream;
+    ctx.strokeStyle = lineCol;
     ctx.globalAlpha = 0.8;
     ctx.lineWidth = 4;
     [[st.x, st.y, 1, 1], [st.x + st.w, st.y, -1, 1], [st.x, st.y + st.h, 1, -1], [st.x + st.w, st.y + st.h, -1, -1]].forEach(([cx2, cy2, dx, dy]) => {
@@ -465,12 +508,10 @@ export class ValetScene {
       ctx.stroke();
     });
     ctx.restore();
-    drawText(ctx, 'BAY', st.x + st.w / 2, st.y - 14, { size: 9, weight: 700, color: inside ? ACCENT : C.faint, align: 'center', spacing: 2 });
+    drawText(ctx, 'BAY', st.x + st.w / 2, st.y - 14, { size: 9, weight: 700, color: mix > 0.5 ? ACCENT : C.faint, align: 'center', spacing: 2 });
+    // tightened in-bay readout, eased values: "12°  ·  6PX"
     if (inside && this.state === 'play') {
-      let err = (this.th - Math.PI / 2) * 180 / Math.PI;
-      while (err > 180) err -= 360;
-      while (err < -180) err += 360;
-      drawText(ctx, `ANGLE ${Math.abs(Math.round(err))}° · OFF-CENTRE ${Math.abs(Math.round(this.x - (st.x + st.w / 2)))}PX · SPACE TO PARK`, st.x + st.w / 2, st.y + st.h + 10, { size: 9, weight: 700, color: ACCENT, align: 'center', spacing: 1 });
+      drawText(ctx, `${Math.round(this.dispAngle)}°  ·  ${Math.round(this.dispOff)}PX`, st.x + st.w / 2, st.y + st.h + 10, { size: 10, weight: 700, color: ACCENT, align: 'center', spacing: 1, alpha: lerp(0.7, 1, mix) });
     }
 
     // props
@@ -629,18 +670,35 @@ export class ValetScene {
 
     ctx.restore(); // end world layer — shake no longer applies below
 
-    // ── HUD
-    drawText(ctx, 'LEVEL 02 · SHUTTLE PRECISION', 36, 12, { size: 10, weight: 700, color: ACCENT, spacing: 3 });
-    drawText(ctx, `SHIFT 2 — ROUND ${this.round + 1}/3`, 36, 24, { font: 'display', size: 30, color: C.cream, spacing: 1 });
-    drawText(ctx, 'BUMPS', 36, 60, { size: 9, weight: 700, color: C.faint, spacing: 2 });
-    for (let i = 0; i < 3; i++) rect(ctx, 84 + i * 14, 60, 9, 9, i < this.bumps ? C.red : '#241f2b');
-    drawText(ctx, String(Math.floor(this.elapsed)), 924, 6, { font: 'display', size: 44, color: this.elapsed > ROUNDS[this.round].par ? C.red : C.cream, align: 'right' });
-    drawText(ctx, `SECONDS · PAR ${ROUNDS[this.round].par}`, 924, 52, { size: 9, weight: 700, color: C.faint, align: 'right', spacing: 2 });
+    // ── HUD (steady, outside the world/shake layer)
+    // Staggered entrance: each cluster fades + slides up a few px at round start.
+    // intro() is reduced-motion safe (snaps without drift) — see theme.js.
+    const a1 = intro(this.tEnter, 0.00);   // top-left identity
+    const a2 = intro(this.tEnter, 0.07);   // bumps
+    const a3 = intro(this.tEnter, 0.05);   // timer
+    const sl1 = (1 - a1) * 8, sl3 = (1 - a3) * 8;
 
-    if (this.notice) {
-      stamp(ctx, this.notice.text, W / 2, 86, { size: 15, bg: this.notice.color, rot: -0.04 });
+    // top-left: quiet label + the one big stat (round). 28px off the corner.
+    drawText(ctx, 'LEVEL 02 · SHUTTLE PRECISION', 28, 14 - sl1, { size: 10, weight: 700, color: ACCENT, spacing: 3, alpha: a1 });
+    drawText(ctx, `ROUND ${this.round + 1}/3`, 28, 26 - sl1, { font: 'display', size: 34, color: C.cream, spacing: 1, alpha: a1 });
+    drawText(ctx, 'BUMPS', 28, 66, { size: 9, weight: 700, color: C.faint, spacing: 2, alpha: a2 });
+    for (let i = 0; i < 3; i++) {
+      rect(ctx, 80 + i * 15, 66, 10, 10, i < this.bumps ? C.red : '#241f2b', a2);
     }
-    drawText(ctx, '↑ DRIVE · ↓ REVERSE · ←/→ STEER · SPACE PARK — REVERSE IN, REAR FIRST', W / 2, 514, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2 });
+
+    // top-right: big seconds + PAR subtitle. 28px off the corner.
+    const over = this.elapsed > ROUNDS[this.round].par;
+    drawText(ctx, String(Math.floor(this.elapsed)), 932, 8 - sl3, { font: 'display', size: 46, color: over ? C.red : C.cream, align: 'right', alpha: a3 });
+    drawText(ctx, `PAR ${ROUNDS[this.round].par}S`, 932, 58, { size: 9, weight: 700, color: C.faint, align: 'right', spacing: 2, alpha: a3 });
+
+    // single transient notice (lowered so it never crowds the top stack)
+    if (this.notice) {
+      stamp(ctx, this.notice.text, W / 2, 96, { size: 15, bg: this.notice.color, rot: -0.04 });
+    }
+
+    // bottom: touch controls OR a slim keyboard hint — never both, never crowded.
+    if (this.game.touch) this.drawTouchControls(ctx);
+    else drawText(ctx, '↑ DRIVE  ·  ↓ REVERSE  ·  ←/→ STEER  ·  SPACE PARK', W / 2, 512, { size: 10, weight: 500, color: C.faint, align: 'center', spacing: 2, alpha: a1 });
 
     if (this.flash > 0) rect(ctx, 0, 0, W, H, C.cream, this.flash * 0.45);
 
@@ -664,6 +722,70 @@ export class ValetScene {
       const next = this.round + 1 < ROUNDS.length ? `ENTER → ROUND ${this.round + 2} (TIGHTER STALL)` : 'ENTER → COLLECT YOUR STARS';
       if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, next, W / 2, 392, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2 });
     }
+
+    ctx.restore();
+  }
+
+  // On-screen controls — drawn in the HUD layer (never inside buildGround's
+  // cache) and only when game.touch. Steer cluster bottom-left, throttle cluster
+  // bottom-right, PARK centred. Held state mirrors the same touchInRect reads the
+  // update loop uses, so a finger on STEER and a finger on GAS both light up at
+  // once (multi-touch). Keyboard/mouse users never see these.
+  drawTouchControls(ctx) {
+    const inp = this.game.input;
+    const a = intro(this.tEnter, 0.12); // ease the pad in with the rest of the HUD
+    if (a <= 0.001) return;
+    ctx.save();
+    ctx.globalAlpha *= a;
+
+    const reversing = this.v < -2;
+    // round button: ink fill, accent ring, glyph; brighter while held.
+    const pad = (r, glyph, held, accent) => {
+      const cx = r.x + r.w / 2, cy = r.y + r.h / 2;
+      const col = accent || ACCENT;
+      ctx.save();
+      ctx.globalAlpha *= held ? 0.92 : 0.5;
+      ctx.beginPath();
+      ctx.roundRect(r.x, r.y, r.w, r.h, 14);
+      ctx.fillStyle = held ? '#1c2a28' : C.ink;
+      ctx.fill();
+      ctx.lineWidth = held ? 3 : 2;
+      ctx.strokeStyle = col;
+      ctx.globalAlpha *= held ? 1 : 0.85;
+      ctx.stroke();
+      ctx.restore();
+      drawText(ctx, glyph, cx, cy + 1, { font: 'display', size: 34, color: held ? C.cream : col, align: 'center', baseline: 'middle' });
+    };
+
+    const inRect = (r) => inp.touchInRect(r.x, r.y, r.w, r.h);
+    // steer cluster (bottom-left)
+    pad(BTN_LEFT, '‹', inRect(BTN_LEFT));
+    pad(BTN_RIGHT, '›', inRect(BTN_RIGHT));
+    // throttle cluster (bottom-right) — REV uses mustard so it reads distinct
+    pad(BTN_REV, '▼', inRect(BTN_REV) || reversing, C.mustard);
+    pad(BTN_GAS, '▲', inRect(BTN_GAS));
+    // small labels under the steer/throttle pads
+    drawText(ctx, 'STEER', BTN_LEFT.x + BTN, BTN_Y - 12, { size: 8, weight: 700, color: C.faint, align: 'center', spacing: 2 });
+    drawText(ctx, 'REV', BTN_REV.x + BTN / 2, BTN_Y - 12, { size: 8, weight: 700, color: C.faint, align: 'center', spacing: 2 });
+    drawText(ctx, 'DRIVE', BTN_GAS.x + BTN / 2, BTN_Y - 12, { size: 8, weight: 700, color: C.faint, align: 'center', spacing: 2 });
+
+    // PARK button (centre-bottom). Lights mustard when parking is actually viable
+    // (stopped + lined up) to guide the eye; tap is wired in update() via pointer.
+    const r = BTN_PARK;
+    const ready = Math.abs(this.v) <= 8 && this.alignMix > 0.6;
+    const held = inp.touchInRect(r.x, r.y, r.w, r.h);
+    const col = ready ? C.mustard : ACCENT;
+    ctx.save();
+    ctx.globalAlpha *= held ? 0.95 : 0.62;
+    ctx.beginPath();
+    ctx.roundRect(r.x, r.y, r.w, r.h, 10);
+    ctx.fillStyle = ready ? '#2a230f' : C.ink;
+    ctx.fill();
+    ctx.lineWidth = ready ? 3 : 2;
+    ctx.strokeStyle = col;
+    ctx.stroke();
+    ctx.restore();
+    drawText(ctx, 'PARK', r.x + r.w / 2, r.y + r.h / 2 + 1, { font: 'display', size: 26, color: col, align: 'center', baseline: 'middle', spacing: 2 });
 
     ctx.restore();
   }
@@ -698,17 +820,23 @@ export class ValetScene {
     rect(ctx, 0, 60, W, 4, ACCENT);
     drawText(ctx, 'LEVEL 02', W / 2, 84, { size: 11, weight: 700, color: ACCENT, align: 'center', spacing: 5 });
     drawText(ctx, 'HOW TO PLAY — SHUTTLE PRECISION', W / 2, 98, { font: 'display', size: 58, color: C.cream, align: 'center', spacing: 2 });
+    // Six clean lines, generously spaced, staggered in. Last line is the action.
     const rules = [
-      'The resort Yukon XL. Three shuttle stops. The bays get tighter.',
-      'Drive across the lot and REVERSE into the bay, rear first.',
-      'Straight and centered scores big. Quick scores more.',
-      'Three bumps ends the stop with a rough score — guests notice.',
-      'The dog owns this lot — the shuttle brakes for it, you lose time.',
-      'At the last stop a guest crosses with takeout — right of way, brake for them too.',
-      'Stop inside the lines, then press SPACE to park.',
+      'Three shuttle stops. The bays get tighter each time.',
+      'Drive across the lot and REVERSE in, rear bumper first.',
+      'Straight, centred and quick scores big.',
+      'People and pets have right of way — the shuttle brakes for them.',
+      'Three bumps ends the stop with a rough score.',
+      'Stop fully inside the lines, then PARK.',
     ];
-    rules.forEach((ln, i) => drawText(ctx, ln, W / 2, 186 + i * 26, { size: 15, weight: 500, color: i === rules.length - 1 ? C.mustard : C.cream, align: 'center' }));
-    drawText(ctx, '↑ DRIVE   ·   ↓ REVERSE   ·   ←/→ STEER   ·   SPACE PARK   ·   M MUTE   ·   P PAUSE', W / 2, 380, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 2 });
-    if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, 'ENTER → TAKE THE KEYS', W / 2, 430, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 3 });
+    rules.forEach((ln, i) => {
+      const a = intro(this.t, 0.05 + i * 0.06);
+      drawText(ctx, ln, W / 2, 196 + i * 30 - (1 - a) * 6, { size: 15, weight: 500, color: i === rules.length - 1 ? C.mustard : C.cream, align: 'center', alpha: a });
+    });
+    const ctl = this.game.touch
+      ? 'ON-SCREEN PADS: STEER · DRIVE / REV · PARK'
+      : '↑ DRIVE   ·   ↓ REVERSE   ·   ←/→ STEER   ·   SPACE PARK';
+    drawText(ctx, ctl, W / 2, 392, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 2, alpha: intro(this.t, 0.45) });
+    if (Math.sin(this.tAll * 5.5) > -0.25) drawText(ctx, this.game.touch ? 'TAP → TAKE THE KEYS' : 'ENTER → TAKE THE KEYS', W / 2, 438, { font: 'display', size: 26, color: C.mustard, align: 'center', spacing: 3 });
   }
 }

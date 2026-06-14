@@ -30,6 +30,29 @@ export const easeOutBack = (t) => {
 let reducedMotion = false;
 export function setReducedMotion(v) { reducedMotion = !!v; }
 
+// Shared minimalistic-animation helpers — convenience for consistent scene motion.
+// Both honor reduced motion (the module flag set via setReducedMotion).
+//
+//   intro(t, delay = 0, dur = 0.4)
+//     Eased 0→1 entrance progress, clamped. `t` is the scene's elapsed seconds.
+//     Use for staggered reveals: e.g. const a = intro(this.t, i * 0.06);
+//     then draw with alpha a and a small slide of (1 - a) * offset.
+//     Reduced motion: snaps in over a short fixed window (no long slide) so the
+//     reveal still reads as appearing rather than popping, but without drift.
+//
+//   breath(t, speed = 1, amp = 1) -> Math.sin(t * speed) * amp
+//     Restrained idle oscillation for gentle bob/pulse. Multiply into an offset
+//     or alpha. Reduced motion: returns 0 (perfectly still).
+export function intro(t, delay = 0, dur = 0.4) {
+  // Snap quickly when motion is reduced — appear, don't slide.
+  const span = reducedMotion ? 0.12 : dur;
+  const p = (t - delay) / Math.max(0.0001, span);
+  return reducedMotion ? easeOutCubic(p) : easeOutExpo(p);
+}
+export function breath(t, speed = 1, amp = 1) {
+  return reducedMotion ? 0 : Math.sin(t * speed) * amp;
+}
+
 let grain = null;
 function makeGrain() {
   // Render at full logical resolution (slightly oversized to cover the animated

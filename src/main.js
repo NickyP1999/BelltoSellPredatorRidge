@@ -37,14 +37,44 @@ fit();
 const input = {
   down: new Set(),
   pressed: new Set(),
+  // Primary pointer — drives taps and card drag (clicked/held/released/x/y).
+  // Semantics are unchanged from the single-pointer era for mouse AND touch.
   pointer: { x: -1, y: -1, clicked: false, held: false, released: false },
+  // ALL active pointers, in 960x540 logical coords. Rebuilt each pointer event
+  // from the internal `pointers` Map below. Scenes read this for multi-touch
+  // hold-buttons (e.g. steer-left + throttle held at once).
+  touches: [],
+  // True if ANY active touch/pointer lies within the given logical rect.
+  // The contract scenes use for on-screen hold-buttons.
+  touchInRect(x, y, w, h) {
+    for (const p of this.touches) {
+      if (p.x >= x && p.x < x + w && p.y >= y && p.y < y + h) return true;
+    }
+    return false;
+  },
 };
+
+// Internal registry of every live pointer, keyed by pointerId. We rebuild
+// input.touches from this on every pointer event so scenes get a fresh array.
+const pointers = new Map();
+function rebuildTouches() {
+  input.touches = [];
+  for (const [id, p] of pointers) input.touches.push({ id, x: p.x, y: p.y });
+}
 
 const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 setReducedMotion(reducedMotion);
 
+// Touch-capable device? Scenes show on-screen hold-buttons when true.
+const touch = !!(
+  ('ontouchstart' in window) ||
+  navigator.maxTouchPoints > 0 ||
+  (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+);
+
 const game = {
   input,
+  touch,
   save: new Save(),
   audio: new GameAudio(),
   paused: false,
@@ -124,8 +154,15 @@ function toCanvas(e) {
 }
 canvas.addEventListener('pointermove', (e) => {
   const p = toCanvas(e);
+  // Primary pointer (unchanged single-pointer semantics for taps/drag).
   input.pointer.x = p.x;
   input.pointer.y = p.y;
+  // Multi-touch: only track a pointer we've already seen go down. A bare
+  // mouse-move has no button held, so it shouldn't register as a "touch".
+  if (pointers.has(e.pointerId)) {
+    pointers.set(e.pointerId, { x: p.x, y: p.y });
+    rebuildTouches();
+  }
 });
 canvas.addEventListener('pointerdown', (e) => {
   game.audio.ensure();
@@ -135,6 +172,9 @@ canvas.addEventListener('pointerdown', (e) => {
   input.pointer.y = p.y;
   input.pointer.clicked = true;
   input.pointer.held = true;
+  // Multi-touch: register this pointer as active.
+  pointers.set(e.pointerId, { x: p.x, y: p.y });
+  rebuildTouches();
 });
 canvas.addEventListener('pointerup', (e) => {
   const p = toCanvas(e);
@@ -142,17 +182,25 @@ canvas.addEventListener('pointerup', (e) => {
   input.pointer.y = p.y;
   input.pointer.held = false;
   input.pointer.released = true;
+  // Multi-touch: this pointer is gone.
+  pointers.delete(e.pointerId);
+  rebuildTouches();
 });
-canvas.addEventListener('pointercancel', () => {
+canvas.addEventListener('pointercancel', (e) => {
   input.pointer.held = false;
   input.pointer.released = true;
+  pointers.delete(e.pointerId);
+  rebuildTouches();
 });
 // Pointer leaving the canvas: park it off-screen and drop any drag so hover
-// highlights clear and no stale drag survives an Alt-Tab.
-canvas.addEventListener('pointerleave', () => {
+// highlights clear and no stale drag survives an Alt-Tab. Also drop it from
+// the touches registry so off-canvas holds don't linger.
+canvas.addEventListener('pointerleave', (e) => {
   input.pointer.x = -1;
   input.pointer.y = -1;
   input.pointer.held = false;
+  pointers.delete(e.pointerId);
+  rebuildTouches();
 });
 
 window.__game = game; // debug handle for dev-tools poking

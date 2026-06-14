@@ -1,5 +1,5 @@
 import { drawText, wrap, rect, frame, clamp } from '../util.js';
-import { C, easeOutExpo, easeOutBack, halftone, motes, panel, sparkle } from '../theme.js';
+import { C, easeOutExpo, easeOutBack, halftone, motes, panel, sparkle, intro } from '../theme.js';
 import { PLAYER_NAME } from '../config.js';
 
 const W = 960, H = 540;
@@ -175,7 +175,7 @@ export class FinaleScene {
     // underlay so it always reads through the vignette
     if (this.t > 3.2) {
       rect(ctx, W / 2 - 150, 490, 300, 24, C.ink, 0.55);
-      drawText(ctx, 'ENTER → YOUR CAREER REPORT', W / 2, 500, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2, alpha: 0.6 + 0.4 * Math.sin(this.t * 4.5) });
+      drawText(ctx, this.game.touch ? 'TAP → YOUR CAREER REPORT' : 'ENTER → YOUR CAREER REPORT', W / 2, 500, { size: 12, weight: 700, color: C.mustard, align: 'center', spacing: 2, alpha: 0.6 + 0.4 * Math.sin(this.t * 4.5) });
     }
   }
 
@@ -243,43 +243,55 @@ export class FinaleScene {
     drawText(ctx, 'PROMOTED', 0, -23, { font: 'display', size: 46, color: C.red, align: 'center', spacing: 3 });
     ctx.restore();
 
-    // headline stats
+    // headline stats — ease in left-to-right just after the masthead lands
     const stats = [
       { label: 'STARS EARNED', value: `${sv.totalStars()}/9`, starsRow: true },
       { label: 'TIPS EARNED', value: `${d.tips}` },
       { label: 'CAREER TIME', value: this.fmtTime(d.playTime || 0) },
     ];
     stats.forEach((s, i) => {
-      const x = 64 + i * 284, y = 210, w = 264, h = 112;
+      const aIn = intro(this.t, 0.34 + i * 0.1);
+      const x = 64 + i * 284, y = 208, w = 264, h = 112;
+      ctx.save();
+      ctx.globalAlpha *= aIn;
+      ctx.translate(0, (1 - aIn) * 14);
       panel(ctx, x, y, w, h, { border: C.edge, borderW: 1 });
-      drawText(ctx, s.label, x + 18, y + 14, { size: 10, weight: 700, color: C.faint, spacing: 3 });
-      drawText(ctx, s.value, x + 18, y + 28, { font: 'display', size: 54, color: C.cream, spacing: 1 });
-      if (s.starsRow) for (let k = 0; k < 9; k++) sparkle(ctx, x + 25 + k * 26, y + 96, 7, k < sv.totalStars() ? C.mustard : '#241f2b');
+      drawText(ctx, s.label, x + 18, y + 16, { size: 10, weight: 700, color: C.faint, spacing: 3 });
+      drawText(ctx, s.value, x + 18, y + 32, { font: 'display', size: 54, color: C.cream, spacing: 1 });
+      if (s.starsRow) for (let k = 0; k < 9; k++) sparkle(ctx, x + 25 + k * 26, y + 98, 7, k < sv.totalStars() ? C.mustard : '#241f2b');
+      ctx.restore();
     });
 
     // the verdict — the letter's own closing line, the hero caption of the
     // report (in-fiction only; pulled verbatim from Management's letter)
-    drawText(ctx, 'That is not bell work. That is sales work.', W / 2, 333, { size: 18, weight: 500, italic: true, color: C.mustard, align: 'center', spacing: 1 });
+    const aHero = intro(this.t, 0.7);
+    drawText(ctx, 'That is not bell work. That is sales work.', W / 2, 338 + (1 - aHero) * 8, { size: 18, weight: 500, italic: true, color: C.mustard, align: 'center', spacing: 1, alpha: aHero });
 
-    // the case, shift by shift — each row pairs the score with the skill it proves
+    // the case, shift by shift — each row pairs the score with the skill it
+    // proves; rows cascade in top-to-bottom after the verdict
     const rows = [
       ['01', 'LUGGAGE RUSH', 'luggage', 'GRACE UNDER PRESSURE'],
       ['02', 'SHUTTLE PRECISION', 'valet', 'PRECISION, WITH GUESTS ABOARD'],
       ['03', 'THE PITCH', 'pitch', 'LISTEN, MATCH, CLOSE — HONESTLY'],
     ];
     rows.forEach(([num, name, id, proof], i) => {
-      const y = 362 + i * 38;
+      const aRow = intro(this.t, 0.84 + i * 0.09);
+      const y = 366 + i * 38;
+      ctx.save();
+      ctx.globalAlpha *= aRow;
+      ctx.translate((1 - aRow) * -16, 0);
       rect(ctx, 64, y - 8, 832, 32, i % 2 ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.055)');
       drawText(ctx, num, 78, y - 3, { font: 'display', size: 22, color: C.mustard });
       drawText(ctx, name, 118, y, { size: 12, weight: 700, color: C.cream, spacing: 2 });
       for (let s = 0; s < 3; s++) sparkle(ctx, 392 + s * 24, y + 7, 8, s < (d.stars[id] || 0) ? C.mustard : '#241f2b');
       drawText(ctx, `BEST ${d.best[id] || 0}`, 488, y, { size: 11, weight: 700, color: C.dim, spacing: 1 });
       drawText(ctx, proof, 896, y, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 2 });
+      ctx.restore();
     });
 
     drawText(ctx, 'CONFIDENTIAL — FOR PREDATOR RIDGE MANAGEMENT ONLY', 64, 498, { size: 9, weight: 700, color: C.mustard, spacing: 2, alpha: 0.85 });
     if (this.t > 0.8 && Math.sin(this.tAll * 5) > -0.3) {
-      drawText(ctx, 'ENTER → BACK TO THE RESORT', 896, 496, { size: 11, weight: 700, color: C.cream, align: 'right', spacing: 2 });
+      drawText(ctx, this.game.touch ? 'TAP → BACK TO THE RESORT' : 'ENTER → BACK TO THE RESORT', 896, 496, { size: 11, weight: 700, color: C.cream, align: 'right', spacing: 2 });
     }
     ctx.restore();
 
@@ -413,6 +425,6 @@ export class FinaleScene {
     ctx.restore();
 
     drawText(ctx, 'THAT EVENING — ONE LAST RUN IN THE NXT CART...', W / 2, 452, { size: 11, weight: 700, color: C.dim, align: 'center', spacing: 3 });
-    if (this.t > 0.7) drawText(ctx, 'ENTER → SKIP', 924, 480, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 2 });
+    if (this.t > 0.7) drawText(ctx, this.game.touch ? 'TAP → SKIP' : 'ENTER → SKIP', 924, 480, { size: 10, weight: 700, color: C.faint, align: 'right', spacing: 2 });
   }
 }

@@ -11,7 +11,7 @@
   <!-- Open Graph / link unfurl — so a forwarded link previews cleanly. -->
   <meta property="og:type" content="website" />
   <meta property="og:title" content="Bell to Sell — A Predator Ridge Career Game" />
-  <meta property="og:description" content="Three shifts, one promotion. A 5–10 minute jazz-noir career game. Best on a laptop or desktop." />
+  <meta property="og:description" content="Three shifts, one promotion. A 5–10 minute jazz-noir career game." />
   <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content="Bell to Sell — A Predator Ridge Career Game" />
   <meta name="twitter:description" content="Three shifts, one promotion. A 5–10 minute jazz-noir career game." />
@@ -19,41 +19,42 @@
     html, body { margin: 0; padding: 0; height: 100%; background: #0e0c10; overflow: hidden; }
     body { display: flex; align-items: center; justify-content: center; }
     canvas { touch-action: none; }
-    /* Desktop-recommended notice for small touch screens (the shifts need a keyboard). */
-    #desktop-note {
-      display: none; position: fixed; inset: 0; z-index: 10;
-      background: #0e0c10; color: #f2e9d8;
+    /* Brief, friendly landscape hint — shown only in portrait on small touch
+       screens, then auto-fades. The game plays fine in portrait; this just
+       nudges toward the roomier landscape view. Never blocks or implies broken. */
+    #rotate-hint {
+      display: none; position: fixed; left: 50%; bottom: 24px;
+      transform: translateX(-50%); z-index: 10;
+      background: #f2b63a; color: #0e0c10;
       font-family: 'Space Grotesk', system-ui, sans-serif;
-      flex-direction: column; align-items: center; justify-content: center;
-      text-align: center; padding: 32px; box-sizing: border-box; gap: 18px;
+      font-weight: 700; font-size: 13px; letter-spacing: 1px;
+      padding: 10px 16px; border-radius: 6px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.5);
+      opacity: 0; transition: opacity 0.4s ease; pointer-events: none;
+      white-space: nowrap;
     }
-    #desktop-note .slab {
-      background: #f2b63a; color: #0e0c10; font-weight: 700;
-      padding: 10px 18px; border-radius: 6px; transform: rotate(-2deg);
-      letter-spacing: 2px; font-size: 13px;
-    }
-    #desktop-note h1 { font-size: 22px; margin: 0; letter-spacing: 1px; }
-    #desktop-note p { font-size: 14px; line-height: 1.5; max-width: 320px; margin: 0; color: #b8ad98; }
-    #desktop-note button {
-      background: none; border: 1px solid #3fb8a8; color: #3fb8a8;
-      padding: 10px 20px; border-radius: 6px; font: inherit; font-weight: 700;
-      letter-spacing: 1px; cursor: pointer; margin-top: 6px;
-    }
+    #rotate-hint.show { opacity: 1; }
   </style>
 </head>
 <body>
   <canvas id="game"></canvas>
-  <div id="desktop-note">
-    <div class="slab">BELL TO SELL</div>
-    <h1>Best on a laptop or desktop</h1>
-    <p>This one's built for a bigger screen and a keyboard — the shifts use arrow keys and Enter. Open the link on a computer for the full experience.</p>
-    <button onclick="document.getElementById('desktop-note').style.display='none'">Continue anyway</button>
-  </div>
+  <div id="rotate-hint">↻ Rotate to landscape for the best view</div>
   <script>
-    // Show the notice only on small, touch-first screens; desktops/laptops never see it.
-    if (window.matchMedia('(pointer: coarse)').matches && Math.min(window.innerWidth, window.innerHeight) < 600) {
-      document.getElementById('desktop-note').style.display = 'flex';
-    }
+    // Gentle, auto-dismissing landscape nudge — only in portrait on small touch
+    // screens. The game is fully playable either way; this never blocks input.
+    (function () {
+      var hint = document.getElementById('rotate-hint');
+      var smallTouch = window.matchMedia('(pointer: coarse)').matches &&
+        Math.min(window.innerWidth, window.innerHeight) < 600;
+      var portrait = window.innerHeight > window.innerWidth;
+      if (smallTouch && portrait) {
+        hint.style.display = 'block';
+        // Reflow, then fade in; fade back out after ~2.5s and remove from flow.
+        requestAnimationFrame(function () { hint.classList.add('show'); });
+        setTimeout(function () { hint.classList.remove('show'); }, 2500);
+        setTimeout(function () { hint.style.display = 'none'; }, 3000);
+      }
+    })();
   </script>
   <script type="module" src="/src/main.js"></script>
 </body>

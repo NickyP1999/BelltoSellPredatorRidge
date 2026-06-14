@@ -1,5 +1,5 @@
 import { drawText, rect } from '../util.js';
-import { C, bokehBg, easeOutExpo, halftone, motes, sparkle } from '../theme.js';
+import { C, bokehBg, easeOutExpo, halftone, motes, sparkle, intro, breath } from '../theme.js';
 import { PLAYER_NAME } from '../config.js';
 
 const W = 960, H = 540;
@@ -57,7 +57,7 @@ export class TitleScene {
 
     const k = easeOutExpo(Math.min(1, this.t / 0.8));
     ctx.save();
-    ctx.translate(480, 220 + Math.sin(this.t * 1.1) * 3);
+    ctx.translate(480, 214 + breath(this.t, 1.1, 3));
     ctx.rotate(-0.045);
     ctx.shadowColor = 'rgba(0,0,0,0.65)';
     ctx.shadowBlur = 30;
@@ -91,15 +91,25 @@ export class TitleScene {
     }
     ctx.restore();
 
-    if (this.t > 0.9) {
-      drawText(ctx, 'A PREDATOR RIDGE CAREER GAME', 480, 330, { size: 12, weight: 700, color: C.dim, align: 'center', spacing: 6 });
-      sparkle(ctx, 480, 372, 9, C.mustard, { alpha: 0.85, rot: this.t * 0.4 });
-      drawText(ctx, `STARRING BELLMAN ${PLAYER_NAME.toUpperCase()}`, 480, 394, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 3 });
+    // Staggered reveal: once the logo has slammed home (~0.85s), the eyebrow,
+    // sparkle, credit, CTA and footer cascade in left-to-right-in-time, each
+    // easing up a few px so the card assembles rather than dumping all at once.
+    const BASE = 0.85;
+    const a1 = intro(this.t, BASE);
+    if (a1 > 0.001) {
+      drawText(ctx, 'A PREDATOR RIDGE CAREER GAME', 480, 332 + (1 - a1) * 10, { size: 12, weight: 700, color: C.dim, align: 'center', spacing: 6, alpha: a1 });
     }
-    if (this.t > 1.2) {
-      drawText(ctx, 'ENTER → CLOCK IN', 480, 444, { font: 'display', size: 28, color: C.mustard, align: 'center', spacing: 3, alpha: 0.6 + 0.4 * Math.sin(this.t * 4.5) });
+    const a2 = intro(this.t, BASE + 0.12);
+    if (a2 > 0.001) {
+      sparkle(ctx, 480, 372, 9 * a2, C.mustard, { alpha: 0.85 * a2, rot: this.t * 0.4 });
+      drawText(ctx, `STARRING BELLMAN ${PLAYER_NAME.toUpperCase()}`, 480, 394 + (1 - a2) * 8, { size: 10, weight: 700, color: C.faint, align: 'center', spacing: 3, alpha: a2 });
     }
-    drawText(ctx, 'CONFIDENTIAL — FOR PREDATOR RIDGE MANAGEMENT ONLY · NOT TO BE SHARED OUTSIDE MANAGEMENT', 480, 504, { size: 8, weight: 700, color: C.mustard, align: 'center', spacing: 2, alpha: 0.85 });
-    drawText(ctx, 'ORIGINAL TRIBUTE — NOT AFFILIATED WITH PREDATOR RIDGE RESORT', 480, 518, { size: 8, weight: 500, color: C.faint, align: 'center', spacing: 2, alpha: 0.7 });
+    const a3 = intro(this.t, BASE + 0.28);
+    if (a3 > 0.001) {
+      drawText(ctx, this.game.touch ? 'TAP → CLOCK IN' : 'ENTER → CLOCK IN', 480, 448 + (1 - a3) * 8, { font: 'display', size: 28, color: C.mustard, align: 'center', spacing: 3, alpha: a3 * (0.6 + 0.4 * Math.sin(this.t * 4.5)) });
+    }
+    const a4 = intro(this.t, BASE + 0.42);
+    drawText(ctx, 'CONFIDENTIAL — FOR PREDATOR RIDGE MANAGEMENT ONLY · NOT TO BE SHARED OUTSIDE MANAGEMENT', 480, 504, { size: 8, weight: 700, color: C.mustard, align: 'center', spacing: 2, alpha: 0.85 * a4 });
+    drawText(ctx, 'ORIGINAL TRIBUTE — NOT AFFILIATED WITH PREDATOR RIDGE RESORT', 480, 518, { size: 8, weight: 500, color: C.faint, align: 'center', spacing: 2, alpha: 0.7 * a4 });
   }
 }
