@@ -10,6 +10,7 @@ import { LuggageScene } from './scenes/luggage.js';
 import { ValetScene } from './scenes/valet.js';
 import { PitchScene } from './scenes/pitch.js';
 import { FinaleScene } from './scenes/finale.js';
+import { SettingsScene } from './scenes/settings.js';
 import { drawText, rect, pointIn } from './util.js';
 import { C, filmLook, setReducedMotion } from './theme.js';
 
@@ -62,7 +63,11 @@ function rebuildTouches() {
   for (const [id, p] of pointers) input.touches.push({ id, x: p.x, y: p.y });
 }
 
-const reducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+const save = new Save();
+const autoReducedMotion = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+// null in the save = follow the OS pref; an explicit true/false from Settings wins.
+const reducedMotion = (save.data.reducedMotion === null || save.data.reducedMotion === undefined)
+  ? autoReducedMotion : save.data.reducedMotion;
 setReducedMotion(reducedMotion);
 
 // Touch-capable device? Scenes show on-screen hold-buttons when true.
@@ -75,7 +80,7 @@ const touch = !!(
 const game = {
   input,
   touch,
-  save: new Save(),
+  save,
   audio: new GameAudio(),
   paused: false,
   reducedMotion,
@@ -101,11 +106,14 @@ game.scenes.luggage = new LuggageScene(game);
 game.scenes.valet = new ValetScene(game);
 game.scenes.pitch = new PitchScene(game);
 game.scenes.finale = new FinaleScene(game);
+game.scenes.settings = new SettingsScene(game);
 game.audio.muted = !!game.save.data.muted;
+game.audio.musicEnabled = game.save.data.music !== false;
+game.toggleFullscreen = toggleFullscreen; // Settings/pause call this (hoisted fn)
 
 // The lounge vamp underscores the title and hub; gameplay levels stay SFX-only.
 function syncMusic(name) {
-  if (name === 'title' || name === 'hub') game.audio.musicOn('lounge');
+  if (name === 'title' || name === 'hub' || name === 'settings') game.audio.musicOn('lounge');
   else game.audio.musicOff();
 }
 
@@ -241,7 +249,7 @@ function tick(now) {
   if (input.pressed.has('KeyM')) toggleMute();
   // Pause only when there's a real shift/hub to pause — never mid-wipe, and
   // never on the title or finale (where R/B are meaningless or destructive).
-  const pausable = !game.transition && game.scene !== game.scenes.title && game.scene !== game.scenes.finale;
+  const pausable = !game.transition && game.scene !== game.scenes.title && game.scene !== game.scenes.finale && game.scene !== game.scenes.settings;
   if ((input.pressed.has('KeyP') || input.pressed.has('Escape')) && (pausable || game.paused)) {
     game.paused = !game.paused;
   }

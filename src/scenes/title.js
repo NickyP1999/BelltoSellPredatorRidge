@@ -1,19 +1,52 @@
-import { drawText, rect } from '../util.js';
+import { drawText, rect, pointIn } from '../util.js';
 import { C, bokehBg, easeOutExpo, halftone, motes, sparkle, intro, breath } from '../theme.js';
 import { PLAYER_NAME } from '../config.js';
 
 const W = 960, H = 540;
+const SETTINGS_BTN = { x: 766, y: 16, w: 178, h: 36 };
 
-// The opening moment: logo slam, one prompt, nothing else.
+// A small cog drawn in code (no asset) — the settings affordance.
+function cog(ctx, cx, cy, r, color) {
+  ctx.save();
+  ctx.fillStyle = color;
+  for (let i = 0; i < 8; i++) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate((i / 8) * Math.PI * 2);
+    ctx.fillRect(-1.5, -r - 2.4, 3, 4.8);
+    ctx.restore();
+  }
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = C.ink;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// The opening moment: logo slam, one prompt, a settings cog.
 export class TitleScene {
   constructor(game) { this.game = game; }
 
-  enter() { this.t = 0; }
+  enter() { this.t = 0; this.overSettings = false; }
 
   update(dt) {
     this.t += dt;
     const inp = this.game.input;
-    if ((inp.pressed.has('Enter') || inp.pressed.has('Space') || inp.pointer.clicked) && this.t > 0.5) {
+    const p = inp.pointer;
+    this.overSettings = pointIn(p, SETTINGS_BTN.x, SETTINGS_BTN.y, SETTINGS_BTN.w, SETTINGS_BTN.h);
+    if (this.overSettings) this.game.cursor = 'pointer';
+    if (this.t <= 0.5) return;
+
+    // Settings takes precedence over the "click anywhere to start" affordance.
+    if (inp.pressed.has('KeyS') || (p.clicked && this.overSettings)) {
+      this.game.audio.stab(1.1, { vol: 0.04 });
+      this.game.go('settings', { from: 'title' });
+      return;
+    }
+    if (inp.pressed.has('Enter') || inp.pressed.has('Space') || (p.clicked && !this.overSettings)) {
       this.game.audio.bell(1.25);
       this.game.audio.stab(1.2, { vol: 0.04 });
       this.game.go('hub');
@@ -108,6 +141,15 @@ export class TitleScene {
     if (a3 > 0.001) {
       drawText(ctx, this.game.touch ? 'TAP → CLOCK IN' : 'ENTER → CLOCK IN', 480, 448 + (1 - a3) * 8, { font: 'display', size: 28, color: C.mustard, align: 'center', spacing: 3, alpha: a3 * (0.6 + 0.4 * Math.sin(this.t * 4.5)) });
     }
+    // settings cog, top-right — staggers in with the rest, brightens on hover
+    const as = intro(this.t, BASE + 0.18);
+    if (as > 0.001) {
+      const lit = this.overSettings;
+      const col = lit ? C.mustard : C.dim;
+      cog(ctx, 786, 35, 8, col);
+      drawText(ctx, this.game.touch ? 'SETTINGS' : 'SETTINGS · S', 936, 28, { size: 11, weight: 700, color: col, align: 'right', spacing: 2, alpha: as * (lit ? 1 : 0.8) });
+    }
+
     const a4 = intro(this.t, BASE + 0.42);
     drawText(ctx, 'CONFIDENTIAL — FOR PREDATOR RIDGE MANAGEMENT ONLY · NOT TO BE SHARED OUTSIDE MANAGEMENT', 480, 504, { size: 8, weight: 700, color: C.mustard, align: 'center', spacing: 2, alpha: 0.85 * a4 });
     drawText(ctx, 'ORIGINAL TRIBUTE — NOT AFFILIATED WITH PREDATOR RIDGE RESORT', 480, 518, { size: 8, weight: 500, color: C.faint, align: 'center', spacing: 2, alpha: 0.7 * a4 });

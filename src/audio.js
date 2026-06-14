@@ -35,6 +35,7 @@ export class GameAudio {
   constructor() {
     this.ctx = null;
     this.muted = false;
+    this._musicEnabled = true;
     this.noiseBuf = null;
     this.musicGain = null;
     this.musicReq = null; // requested track; remembered until ensure() runs
@@ -49,11 +50,25 @@ export class GameAudio {
   get muted() { return this._muted; }
   set muted(v) {
     this._muted = !!v;
-    if (this.ctx && this.musicGain) {
-      const g = this.musicGain.gain;
-      g.cancelScheduledValues(this.ctx.currentTime);
-      g.setValueAtTime(this._muted || !this.musicReq ? 0 : LOUNGE.level, this.ctx.currentTime);
-    }
+    this._snapMusicGain();
+  }
+
+  // The lounge underscore can be toggled independently of the master mute.
+  get musicEnabled() { return this._musicEnabled; }
+  set musicEnabled(v) {
+    this._musicEnabled = !!v;
+    if (this._musicEnabled && this.ctx) { this.musicNext = this.ctx.currentTime + 0.1; this.musicBeat = 0; }
+    this._snapMusicGain();
+  }
+
+  // Snap the music bus to its correct level right now (no fade) — used when a
+  // mute/music toggle flips, so the change feels immediate.
+  _snapMusicGain() {
+    if (!this.ctx || !this.musicGain) return;
+    const g = this.musicGain.gain;
+    const silent = this._muted || !this._musicEnabled || !this.musicReq;
+    g.cancelScheduledValues(this.ctx.currentTime);
+    g.setValueAtTime(silent ? 0 : LOUNGE.level, this.ctx.currentTime);
   }
 
   ensure() {
@@ -208,7 +223,7 @@ export class GameAudio {
 
   // Big SFX moments dip the underscore to ~40% for ~350ms, then it recovers.
   _duck() {
-    if (!this.ctx || !this.musicGain || !this.musicReq || this._muted) return;
+    if (!this.ctx || !this.musicGain || !this.musicReq || this._muted || !this._musicEnabled) return;
     const g = this.musicGain.gain;
     const t = this.ctx.currentTime;
     g.cancelScheduledValues(t);
@@ -226,7 +241,7 @@ export class GameAudio {
     const t = this.ctx.currentTime;
     g.cancelScheduledValues(t);
     g.setValueAtTime(g.value, t);
-    g.linearRampToValueAtTime(this._muted ? 0 : LOUNGE.level, t + 0.5);
+    g.linearRampToValueAtTime(this._muted || !this._musicEnabled ? 0 : LOUNGE.level, t + 0.5);
     this.musicBeat = 0;
     this.musicNext = t + 0.15;
     this.musicTimer = setInterval(() => this._musicTick(), 100);
@@ -235,7 +250,7 @@ export class GameAudio {
 
   // Lookahead scheduler: runs every 100ms, schedules beats up to 0.25s out.
   _musicTick() {
-    if (!this.ctx || this._muted) return; // muted pauses scheduling entirely
+    if (!this.ctx || this._muted || !this._musicEnabled) return; // muted/disabled pauses scheduling
     const t = this.ctx.currentTime;
     if (this.musicNext < t) {
       // Resync after mute/tab throttle: reset the beat phase too so the vamp

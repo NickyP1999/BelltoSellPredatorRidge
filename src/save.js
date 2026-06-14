@@ -10,6 +10,8 @@ const DEFAULTS = {
   finaleSeen: false,
   seenHowTo: {},
   muted: false,
+  music: true,          // lounge underscore on/off (independent of muted)
+  reducedMotion: null,  // null = follow the OS pref; true/false = manual override
 };
 
 export class Save {
